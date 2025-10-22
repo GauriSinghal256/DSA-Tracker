@@ -29,6 +29,11 @@ const userSchema = new Schema({
         type: String,    //cloudmary url
         required: true,
     },
+    year: {
+    type: String,
+    enum: ["school going", "1st", "2nd", "3rd", "4th"], // restrict allowed values
+    required: true
+   },
     ProblemHistory:[
         {
             type : Schema.Types.ObjectId,
