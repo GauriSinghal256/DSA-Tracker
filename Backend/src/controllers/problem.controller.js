@@ -26,7 +26,7 @@ export const logProblem = async (req, res) => {
     console.log("problem Title:", title);
 
     if(
-        [title, platform, Problem_URL, difficulty, status].some((field)=>
+        [title, platform, Problem_URL, difficulty].some((field)=>
             field?.trim() === "")
     ) {
         throw new ApiError(400 , "Required fields are missing")
