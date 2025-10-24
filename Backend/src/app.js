@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import userRouter from "./routes/user.routes.js"; 
+import problemRouter from "./routes/problem.routes.js";
 
 const app = express();
 
@@ -17,5 +18,6 @@ app.use(cookieParser());
 
 // 🔥 Mount the auth router
 app.use("/api/auth", userRouter);
+app.use("/api/problems",problemRouter)
 
 export { app };

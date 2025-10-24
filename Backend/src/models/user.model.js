@@ -34,12 +34,6 @@ const userSchema = new Schema({
     enum: ["school going", "1st", "2nd", "3rd", "4th"], // restrict allowed values
     required: true
    },
-    ProblemHistory:[
-        {
-            type : Schema.Types.ObjectId,
-            ref : 'Problem'
-        }
-    ],
     password:{
         type: String,
         required: [true ,"Password is required"]
