@@ -157,3 +157,120 @@ export const updateProblemNotes = asyncHandler(async (req, res) => {
     data: problemHistory
   });
 });
+
+// Get analytics for the user
+export const getAnalytics = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  
+  // Get all problems for the user
+  const histories = await ProblemHistory.find({ user: userId })
+    .populate("problem")
+    .sort({ solvedAt: -1 });
+
+  // Calculate statistics
+  const totalProblems = histories.length;
+  const solvedProblems = histories.filter(h => h.status === 'Solved').length;
+  const attemptedProblems = histories.filter(h => h.status === 'Attempted').length;
+  const toDoProblems = histories.filter(h => h.status === 'To Do').length;
+  
+  // Difficulty breakdown
+  const difficultyCounts = { Easy: 0, Medium: 0, Hard: 0 };
+  histories.forEach(h => {
+    const diff = h.problem?.difficulty;
+    if (diff && difficultyCounts.hasOwnProperty(diff)) {
+      difficultyCounts[diff]++;
+    }
+  });
+
+  // Platform breakdown
+  const platformCounts = {};
+  histories.forEach(h => {
+    const platform = h.problem?.platform;
+    if (platform) {
+      platformCounts[platform] = (platformCounts[platform] || 0) + 1;
+    }
+  });
+
+  // Topic breakdown
+  const topicCounts = {};
+  histories.forEach(h => {
+    const tags = h.problem?.tags || [];
+    tags.forEach(tag => {
+      topicCounts[tag] = (topicCounts[tag] || 0) + 1;
+    });
+  });
+
+  // Weekly progress (last 4 weeks)
+  const now = new Date();
+  const weeklyData = [];
+  for (let i = 3; i >= 0; i--) {
+    const weekStart = new Date(now);
+    weekStart.setDate(weekStart.getDate() - (i * 7 + 6));
+    const weekEnd = new Date(now);
+    weekEnd.setDate(weekEnd.getDate() - (i * 7));
+    
+    const weekProblems = histories.filter(h => {
+      const solvedDate = new Date(h.solvedAt);
+      return solvedDate >= weekStart && solvedDate <= weekEnd;
+    }).length;
+    
+    weeklyData.push({
+      week: `Week ${4 - i}`,
+      problems: weekProblems
+    });
+  }
+
+  // Calculate accuracy (solved / total attempts)
+  const accuracy = totalProblems > 0 ? Math.round((solvedProblems / totalProblems) * 100) : 0;
+
+  // Calculate current streak
+  let currentStreak = 0;
+  if (histories.length > 0) {
+    const solvedHistory = histories
+      .filter(h => h.status === 'Solved')
+      .sort((a, b) => new Date(b.solvedAt) - new Date(a.solvedAt));
+    
+    if (solvedHistory.length > 0) {
+      let checkDate = new Date();
+      checkDate.setHours(0, 0, 0, 0);
+      
+      for (let i = 0; i < solvedHistory.length; i++) {
+        const solvedDate = new Date(solvedHistory[i].solvedAt);
+        solvedDate.setHours(0, 0, 0, 0);
+        
+        const daysDiff = Math.floor((checkDate - solvedDate) / (1000 * 60 * 60 * 24));
+        
+        if (daysDiff === currentStreak) {
+          currentStreak++;
+        } else if (daysDiff > currentStreak) {
+          break;
+        }
+      }
+    }
+  }
+
+  // Calculate weekly average
+  const totalIn4Weeks = weeklyData.reduce((sum, week) => sum + week.problems, 0);
+  const weeklyAverage = Math.round(totalIn4Weeks / 4);
+
+  return res.status(200).json({
+    success: true,
+    data: {
+      totalProblems,
+      solvedProblems,
+      attemptedProblems,
+      toDoProblems,
+      accuracy,
+      currentStreak,
+      weeklyAverage,
+      difficultyStats: {
+        Easy: difficultyCounts.Easy,
+        Medium: difficultyCounts.Medium,
+        Hard: difficultyCounts.Hard
+      },
+      platformStats: platformCounts,
+      topicStats: topicCounts,
+      weeklyProgress: weeklyData
+    }
+  });
+});

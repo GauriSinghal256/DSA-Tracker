@@ -3,9 +3,6 @@ import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
 const chatWithAI = asyncHandler(async (req, res) => {
     const { message, lastProblem } = req.body;
     
@@ -13,7 +10,15 @@ const chatWithAI = asyncHandler(async (req, res) => {
         throw new ApiError(400, 'Message is required');
     }
 
+    // Check if API key is configured
+    if (!process.env.GEMINI_API_KEY) {
+        throw new ApiError(500, 'Gemini API key is not configured. Please add GEMINI_API_KEY to your environment variables.');
+    }
+
     try {
+        // Initialize Gemini AI
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        
         // Get Gemini model
         const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
         
@@ -40,7 +45,15 @@ Use this context to provide relevant recommendations and explanations.`;
         
     } catch (error) {
         console.error('Gemini AI Error:', error);
-        throw new ApiError(500, `AI service error: ${error.message || 'Failed to generate response'}`);
+        
+        // Handle specific error cases
+        if (error.message && error.message.includes('API_KEY_INVALID')) {
+            throw new ApiError(500, 'Invalid Gemini API key. Please check your GEMINI_API_KEY in the .env file.');
+        } else if (error.message && error.message.includes('API key not valid')) {
+            throw new ApiError(500, 'Invalid or expired Gemini API key. Please generate a new one from Google AI Studio.');
+        } else {
+            throw new ApiError(500, `AI service error: ${error.message || 'Failed to generate response'}`);
+        }
     }
 });
 

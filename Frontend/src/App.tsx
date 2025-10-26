@@ -6,7 +6,6 @@ import ProblemLogger from "./components/ProblemLogger";
 import Problems from "./components/Problems";
 import Analytics from "./components/Analytics";
 import Recommendations from "./components/Recommendations";
-import CompanyRoadmaps from "./components/CompanyRoadmaps";
 import PlacementReadiness from "./components/PlacementReadiness";
 // @ts-ignore: importing a JS (JSX) file without type declarations
 import Register from "./components/login_Signup/Register.jsx";
@@ -57,7 +56,6 @@ function App() {
     { id: "problems", label: "My Problems", icon: FileText },
     { id: "analytics", label: "Analytics", icon: TrendingUp },
     { id: "recommendations", label: "AI Recommendations", icon: Zap },
-    { id: "roadmaps", label: "Company Roadmaps", icon: Target },
     { id: "readiness", label: "Placement Readiness", icon: Calendar },
   ];
 
@@ -73,8 +71,6 @@ function App() {
         return <Analytics />;
       case "recommendations":
         return <Recommendations />;
-      case "roadmaps":
-        return <CompanyRoadmaps />;
       case "readiness":
         return <PlacementReadiness />;
       default:
