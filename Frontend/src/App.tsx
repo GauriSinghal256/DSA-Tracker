@@ -1,8 +1,9 @@
 // src/App.tsx
 import React, { useEffect, useState } from "react";
-import { Menu, X, BarChart3, Target, Calendar, BookOpen, Zap, TrendingUp } from "lucide-react";
+import { Menu, X, BarChart3, Target, Calendar, BookOpen, Zap, TrendingUp, FileText } from "lucide-react";
 import Dashboard from "./components/Dashboard";
 import ProblemLogger from "./components/ProblemLogger";
+import Problems from "./components/Problems";
 import Analytics from "./components/Analytics";
 import Recommendations from "./components/Recommendations";
 import CompanyRoadmaps from "./components/CompanyRoadmaps";
@@ -53,6 +54,7 @@ function App() {
   const tabs = [
     { id: "dashboard", label: "Dashboard", icon: BarChart3 },
     { id: "logger", label: "Log Problem", icon: BookOpen },
+    { id: "problems", label: "My Problems", icon: FileText },
     { id: "analytics", label: "Analytics", icon: TrendingUp },
     { id: "recommendations", label: "AI Recommendations", icon: Zap },
     { id: "roadmaps", label: "Company Roadmaps", icon: Target },
@@ -62,9 +64,11 @@ function App() {
   const renderActiveComponent = () => {
     switch (activeTab) {
       case "dashboard":
-        return <Dashboard />;
+        return <Dashboard onNavigateToRecommendations={() => setActiveTab("recommendations")} />;
       case "logger":
         return <ProblemLogger />;
+      case "problems":
+        return <Problems />;
       case "analytics":
         return <Analytics />;
       case "recommendations":
@@ -74,7 +78,7 @@ function App() {
       case "readiness":
         return <PlacementReadiness />;
       default:
-        return <Dashboard />;
+        return <Dashboard onNavigateToRecommendations={() => setActiveTab("recommendations")} />;
     }
   };
 

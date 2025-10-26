@@ -33,11 +33,17 @@ const registerUser = asyncHandler(async (req, res) => {
       }
 
      const existedUser =await User.findOne({
-        $or: [{email} , {username}]
+        $or: [{email} , {username: username.toLowerCase()}]
      })
 
      if(existedUser){
-        throw new ApiError(409 , "User already exists with this email or username")
+        if(existedUser.email === email){
+            throw new ApiError(409 , "User with this email already exists")
+        }
+        if(existedUser.username === username.toLowerCase()){
+            throw new ApiError(409 , "Username is already taken")
+        }
+        throw new ApiError(409 , "User already exists")
      }
 
      const avatarLocalPath =  req.files?.avatar[0]?.path;
@@ -68,33 +74,75 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new ApiError(500 , "User creation failed")
     }
     
-    return res.status(201).json(
-        new ApiResponse(201 , createdUser , "User created successfully")
+    // Generate tokens for the newly created user
+    const {accessToken , refreshToken} = await generateAccessAndRefreshToken(user._id)
+    
+    const options = {
+        httpOnly: true,
+        secure: true,
+    }
+    
+    return res
+    .status(201)
+    .cookie("accessToken" , accessToken , options)
+    .cookie("refreshToken" , refreshToken , options)
+    .json(
+        new ApiResponse(201 , {user: createdUser , accessToken , refreshToken} , "User created successfully")
     )
 })   
 
 const loginUser = asyncHandler(async (req, res) => {
     const{email , username , password} = req.body
-    console.log(email);
+    console.log("=== LOGIN ATTEMPT ===");
+    console.log("Request body:", req.body);
+    console.log("Email:", email);
+    console.log("Username:", username);
+    console.log("Password:", password ? "***" : "missing");
 
     if(!username && !email){
         throw new ApiError(400 , "Username or email is required")
     }
 
-    const user = await User.findOne({
-        $or: [{email} , {username}]
-    })
+    // Search for user by email first, then username
+    let user = null;
+    
+    if(email){
+        user = await User.findOne({ email: email });
+        console.log("Searched by email:", email);
+    }
+    
+    if(!user && username){
+        user = await User.findOne({ username: username.toLowerCase() });
+        console.log("Searched by username:", username.toLowerCase());
+    }
+
+    console.log("User found:", user ? "YES" : "NO");
+    
+    if(user){
+        console.log("User details:");
+        console.log("- ID:", user._id);
+        console.log("- Email:", user.email);
+        console.log("- Username:", user.username);
+        console.log("- Full Name:", user.fullName);
+    } else {
+        // List all users in database for debugging
+        const allUsers = await User.find({}, 'email username');
+        console.log("All users in database:", allUsers);
+    }
 
     if(!user){
         throw new ApiError(404 , "User not found")
     }
 
     const isPasswordValid = await user.isPasswordCorrect(password)
+    console.log("Password valid:", isPasswordValid);
+    
     if(!isPasswordValid){
         throw new ApiError(401 , "Invalid credentials")
     }
 
     const {accessToken , refreshToken} = await generateAccessAndRefreshToken(user._id)
+    console.log("Tokens generated successfully");
      
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
 
@@ -102,6 +150,8 @@ const loginUser = asyncHandler(async (req, res) => {
         httpOnly: true,
         secure: true,
     }
+    
+    console.log("=== LOGIN SUCCESS ===");
     
     return res
     .status(200)

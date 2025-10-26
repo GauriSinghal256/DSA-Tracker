@@ -14,9 +14,11 @@ const Register = ({ onAuthSuccess }) => {
   });
 
   const handleChange = (e) => {
-    const { name, value, files } = e.target;
-    if (name === "avatar") {
-      setFormData({ ...formData, avatar: files[0] }); // handle file input
+    const { name, value, type } = e.target;
+    
+    if (type === "file") {
+      const file = e.target.files[0];
+      setFormData({ ...formData, avatar: file });
     } else {
       setFormData({ ...formData, [name]: value });
     }
@@ -34,16 +36,18 @@ const Register = ({ onAuthSuccess }) => {
       if (isLogin) {
         // 🟢 LOGIN API
         const res = await axios.post("http://localhost:8000/api/auth/login", {
-          email: formData.email,
+          email: formData.email, // Send as email
           password: formData.password,
         });
 
         alert("Login Successful!");
         localStorage.setItem("dsa_isAuthenticated", "true");
-        localStorage.setItem("dsa_user", JSON.stringify(res.data.user));
+        localStorage.setItem("dsa_user", JSON.stringify(res.data.data.user));
+        localStorage.setItem("accessToken", res.data.data.accessToken);
+        localStorage.setItem("refreshToken", res.data.data.refreshToken);
 
         if (typeof onAuthSuccess === "function") {
-          onAuthSuccess(res.data.user);
+          onAuthSuccess(res.data.data.user);
         }
 
       } else {
@@ -64,15 +68,28 @@ const Register = ({ onAuthSuccess }) => {
 
         alert("Registration Successful!");
         localStorage.setItem("dsa_isAuthenticated", "true");
-        localStorage.setItem("dsa_user", JSON.stringify(res.data.user));
+        localStorage.setItem("dsa_user", JSON.stringify(res.data.data.user));
+        
+        // Save tokens from response
+        if (res.data.data.accessToken) {
+          localStorage.setItem("accessToken", res.data.data.accessToken);
+        }
+        if (res.data.data.refreshToken) {
+          localStorage.setItem("refreshToken", res.data.data.refreshToken);
+        }
 
         if (typeof onAuthSuccess === "function") {
-          onAuthSuccess(res.data.user);
+          onAuthSuccess(res.data.data.user);
         }
       }
     } catch (err) {
       console.error("Error:", err.response?.data || err.message);
-      alert(`Something went wrong: ${err.response?.data?.message || err.message}`);
+      const errorMessage = err.response?.data?.message || err.message;
+      if (errorMessage.includes("not found") || errorMessage.includes("invalid")) {
+        alert(`Login failed: ${errorMessage}\n\nPlease make sure you've registered with this email or try a different account.`);
+      } else {
+        alert(`Something went wrong: ${errorMessage}`);
+      }
     }
   };
 

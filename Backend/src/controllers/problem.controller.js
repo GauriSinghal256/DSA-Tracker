@@ -7,8 +7,7 @@ import { Problem } from '../models/problem.model.js';
 import { ProblemHistory } from '../models/problemHistory.model.js';
 
 // POST /api/problems/log
-export const logProblem = async (req, res) => {
-  try {
+export const logProblem = asyncHandler(async (req, res) => {
     const userId = req.user._id; // from JWT
     const {
       title,
@@ -20,10 +19,11 @@ export const logProblem = async (req, res) => {
       redoAt,
       notes,
       noteImage,
-      status,
+      status = "Solved",
     } = req.body;
 
     console.log("problem Title:", title);
+    console.log("Request body:", req.body);
 
     if(
         [title, platform, Problem_URL, difficulty].some((field)=>
@@ -31,6 +31,26 @@ export const logProblem = async (req, res) => {
     ) {
         throw new ApiError(400 , "Required fields are missing")
       } 
+    
+    // Map status values
+    const statusMap = {
+      "solved": "Solved",
+      "unsolved": "To Do",
+      "attempted": "Attempted",
+      "redo": "Redo"
+    };
+    
+    const finalStatus = statusMap[status?.toLowerCase()] || status || "Solved";
+
+    // Parse tags if it's a string
+    let parsedTags = [];
+    if (tags) {
+      try {
+        parsedTags = typeof tags === 'string' ? JSON.parse(tags) : tags;
+      } catch (e) {
+        parsedTags = Array.isArray(tags) ? tags : [];
+      }
+    }
 
     // Step 1: Check if the problem already exists globally
     let problem = await Problem.findOne({ title, platform, Problem_URL });
@@ -40,71 +60,100 @@ export const logProblem = async (req, res) => {
         platform,
         Problem_URL,
         difficulty,
-        tags,
+        tags: parsedTags,
       });
     }
 
-   let notesImage = null; // default: no image
+   let notesImageUrl = null; // default: no image
 
 const notesImageLocalPath = req.files?.notesImage?.[0]?.path;
+console.log("Notes image path:", notesImageLocalPath);
 
 if (notesImageLocalPath) {
-  notesImage = await uploadToCloudinary(notesImageLocalPath);
+  try {
+    const uploadedImage = await uploadToCloudinary(notesImageLocalPath);
 
-  if (!notesImage) {
-    throw new ApiError(500, "NotesImage upload failed");
+    if (!uploadedImage || !uploadedImage.url) {
+      console.error("Cloudinary upload failed: no URL returned");
+      // Don't fail the whole request if image upload fails, just log it
+      console.warn("Saving problem without image due to upload failure");
+    } else {
+      notesImageUrl = uploadedImage.url;
+    }
+  } catch (error) {
+    console.error("Cloudinary upload error:", error);
+    // Don't fail the whole request if image upload fails, just log it
+    console.warn("Saving problem without image due to upload error");
   }
 }
     
-    // Step 2: Create or update user’s personal history for that problem
+    // Step 2: Create or update user's personal history for that problem
     let history = await ProblemHistory.findOne({ user: userId, problem: problem._id });
     if (!history) {
       history = await ProblemHistory.create({
         user: userId,
         problem: problem._id,
-        status,
-        solvedAt,
+        status: finalStatus,
+        solvedAt: solvedAt || new Date(),
         redoAt,
         notes,
-        noteImage,
+        noteImage: notesImageUrl,
       });
     } else {
       // update existing history
-      history.status = status || history.status;
+      history.status = finalStatus || history.status;
       history.solvedAt = solvedAt || history.solvedAt;
       history.redoAt = redoAt || history.redoAt;
       history.notes = notes || history.notes;
-      history.noteImage = noteImage || history.noteImage;
+      if (notesImageUrl) {
+        history.noteImage = notesImageUrl;
+      }
       await history.save();
     }
 
     return res.status(200).json({
       success: true,
       message: "Problem logged successfully",
+      accessToken: req.accessToken,
       data: { problem, history },
     });
+});
 
-  } catch (error) {
-    console.error("Error logging problem:", error);
-    res.status(500).json({ success: false, message: "Server error", error });
+export const getUserProblems = asyncHandler(async (req, res) => {
+  const userId = req.user._id; // from JWT
+
+  const histories = await ProblemHistory.find({ user: userId })
+    .populate("problem") // populate full problem info
+    .sort({ solvedAt: -1 }); // optional: latest first
+
+  return res.status(200).json({
+    success: true,
+    count: histories.length,
+    data: histories
+  });
+});
+
+// Update notes for a problem
+export const updateProblemNotes = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const { problemHistoryId } = req.params;
+  const { notes } = req.body;
+
+  const problemHistory = await ProblemHistory.findOne({
+    _id: problemHistoryId,
+    user: userId
+  });
+
+  if (!problemHistory) {
+    throw new ApiError(404, "Problem history not found");
   }
-};
 
-export const getUserProblems = async (req, res) => {
-  try {
-    const userId = req.user._id; // from JWT
+  problemHistory.notes = notes;
+  await problemHistory.save();
 
-    const histories = await ProblemHistory.find({ user: userId })
-      .populate("problem") // populate full problem info
-      .sort({ solvedAt: -1 }); // optional: latest first
-
-    return res.status(200).json({
-      success: true,
-      count: histories.length,
-      data: histories
-    });
-  } catch (error) {
-    console.error("Error fetching user problems:", error);
-    return res.status(500).json({ success: false, message: "Server error", error });
-  }
-};
+  return res.status(200).json({
+    success: true,
+    message: "Notes updated successfully",
+    data: problemHistory
+  });
+});

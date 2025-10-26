@@ -44,7 +44,11 @@ const ProblemLogger = () => {
         if (!token) return;
 
         const res = await fetch("http://localhost:8000/api/problems/allProblems", {
-          headers: { Authorization: `Bearer ${token}` },
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
+          credentials: "include",
         });
         const data = await res.json();
         if (data.success) {
@@ -62,33 +66,66 @@ const ProblemLogger = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem("accessToken");
-      if (!token) throw new Error("No access token found");
+      console.log("Access Token:", token ? "Token exists" : "No token");
+      
+      if (!token) {
+        alert("You need to login first!");
+        throw new Error("No access token found");
+      }
 
       const formToSend = new FormData();
       formToSend.append("title", formData.title);
       formToSend.append("platform", formData.platform);
       formToSend.append("Problem_URL", formData.url);
       formToSend.append("difficulty", formData.difficulty);
-      formToSend.append(
-        "tags",
-        JSON.stringify(formData.tags.split(',').map(t => t.trim()).filter(t => t))
-      );
-      formToSend.append("notes", formData.notes);
-      formToSend.append("status", formData.solved ? "solved" : "unsolved");
-      formToSend.append("redoAt", formData.revisit ? formData.revisitDate : "");
+      
+      // Handle tags properly
+      const tagsArray = formData.tags.split(',').map(t => t.trim()).filter(t => t);
+      if (tagsArray.length > 0) {
+        formToSend.append("tags", JSON.stringify(tagsArray));
+      }
+      
+      formToSend.append("notes", formData.notes || "");
+      formToSend.append("status", formData.solved ? "Solved" : "To Do");
+      if (formData.revisit) {
+        formToSend.append("redoAt", formData.revisitDate);
+      }
+      if (formData.timeSpent) {
+        formToSend.append("timeTaken", formData.timeSpent);
+      }
       if (formData.noteImage) formToSend.append("notesImage", formData.noteImage);
 
       const res = await fetch("http://localhost:8000/api/problems/log", {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+        credentials: "include",
         body: formToSend,
       });
 
       const data = await res.json();
-      if (!data.success) throw new Error(data.message || "Failed to log problem");
+      
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "Failed to log problem");
+      }
 
-      // Prepend new problem history
-      setRecentProblems([data.data.history, ...recentProblems]);
+      // Refresh the problems list
+      const fetchProblems = async () => {
+        const res = await fetch("http://localhost:8000/api/problems/allProblems", {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
+          credentials: "include",
+        });
+        const data = await res.json();
+        if (data.success) {
+          setRecentProblems(data.data);
+        }
+      };
+      
+      fetchProblems();
 
       // Reset form
       setFormData({
@@ -104,8 +141,11 @@ const ProblemLogger = () => {
         url: '',
         noteImage: null
       });
-    } catch (err) {
+      
+      alert("Problem logged successfully!");
+    } catch (err: any) {
       console.error("Error logging problem:", err);
+      alert(`Error: ${err.message || "Failed to log problem"}`);
     }
   };
 
