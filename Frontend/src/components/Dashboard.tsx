@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Flame, Target, Trophy, TrendingUp, Clock, User, Mail, GraduationCap } from 'lucide-react';
+import { Calendar, Flame, Target, Trophy, TrendingUp, Clock, User, Mail, GraduationCap, Code2, CheckCircle2, AlertCircle } from 'lucide-react';
 import StreakCalendar from './StreakCalendar';
 import StatsCard from './StatsCard';
 
@@ -28,9 +28,11 @@ interface UserData {
 
 interface DashboardProps {
   onNavigateToRecommendations?: () => void;
+  onNavigateToLogger?: () => void;
+  onNavigateToAnalytics?: () => void;
 }
 
-const Dashboard = ({ onNavigateToRecommendations }: DashboardProps) => {
+const Dashboard = ({ onNavigateToRecommendations, onNavigateToLogger, onNavigateToAnalytics }: DashboardProps) => {
   const [user, setUser] = useState<UserData | null>(null);
   const [streakData, setStreakData] = useState<{ date: Date; count: number; intensity: number }[]>([]);
   const [stats, setStats] = useState({
@@ -405,55 +407,86 @@ const Dashboard = ({ onNavigateToRecommendations }: DashboardProps) => {
         </div>
         <div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50">
           <div className="space-y-4">
-            {recentActivity.map((activity, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between p-4 bg-gray-700/30 rounded-xl hover:bg-gray-700/50 transition-all duration-200 group"
-              >
-                <div className="flex items-center space-x-4">
-                  <div className={`w-3 h-3 rounded-full ${activity.solved ? 'bg-green-400' : 'bg-red-400'}`} />
-                  <div>
-                    <h3 className="font-semibold text-white group-hover:text-blue-400 transition-colors">
-                      {activity.problem}
-                    </h3>
-                    <p className="text-sm text-gray-400">
-                      {activity.platform} • {activity.difficulty}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-sm text-gray-500">{activity.time}</div>
+            {recentActivity.length === 0 ? (
+              <div className="text-center py-8 text-gray-400">
+                No recent activity. Start solving problems!
               </div>
-            ))}
+            ) : (
+              recentActivity.map((activity, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-700/30 to-gray-800/30 rounded-xl hover:from-gray-700/50 hover:to-gray-800/50 transition-all duration-200 group border border-gray-600/30 hover:border-blue-500/50"
+                >
+                  <div className="flex items-center space-x-4">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      activity.solved 
+                        ? 'bg-green-500/20 border-2 border-green-500' 
+                        : 'bg-orange-500/20 border-2 border-orange-500'
+                    }`}>
+                      {activity.solved ? (
+                        <CheckCircle2 className="w-5 h-5 text-green-400" />
+                      ) : (
+                        <AlertCircle className="w-5 h-5 text-orange-400" />
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-white group-hover:text-blue-400 transition-colors">
+                        {activity.problem}
+                      </h3>
+                      <p className="text-sm text-gray-400">
+                        {activity.platform} • <span className={`font-medium ${
+                          activity.difficulty === 'Easy' ? 'text-green-400' :
+                          activity.difficulty === 'Medium' ? 'text-yellow-400' :
+                          'text-red-400'
+                        }`}>
+                          {activity.difficulty}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-500">{activity.time}</div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-2xl p-6 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-300 cursor-pointer group">
+        <div 
+          onClick={onNavigateToLogger} 
+          className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-2xl p-6 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-300 cursor-pointer group hover:scale-105"
+        >
           <div className="flex items-center space-x-3 mb-4">
-            <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Target className="w-5 h-5 text-blue-400" />
+            <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <CheckCircle2 className="w-6 h-6 text-blue-400" />
             </div>
             <h3 className="text-lg font-semibold text-white">Log New Problem</h3>
           </div>
           <p className="text-gray-400 text-sm">Track your latest coding challenge</p>
         </div>
 
-        <div className="bg-gradient-to-br from-green-600/20 to-emerald-600/20 rounded-2xl p-6 border border-green-500/30 hover:border-green-400/50 transition-all duration-300 cursor-pointer group">
+        <div 
+          onClick={onNavigateToAnalytics} 
+          className="bg-gradient-to-br from-green-600/20 to-emerald-600/20 rounded-2xl p-6 border border-green-500/30 hover:border-green-400/50 transition-all duration-300 cursor-pointer group hover:scale-105"
+        >
           <div className="flex items-center space-x-3 mb-4">
-            <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-              <TrendingUp className="w-5 h-5 text-green-400" />
+            <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <TrendingUp className="w-6 h-6 text-green-400" />
             </div>
             <h3 className="text-lg font-semibold text-white">View Analytics</h3>
           </div>
           <p className="text-gray-400 text-sm">Analyze your progress and patterns</p>
         </div>
 
-        <div className="bg-gradient-to-br from-purple-600/20 to-pink-600/20 rounded-2xl p-6 border border-purple-500/30 hover:border-purple-400/50 transition-all duration-300 cursor-pointer group">
+        <div 
+          onClick={onNavigateToRecommendations} 
+          className="bg-gradient-to-br from-purple-600/20 to-pink-600/20 rounded-2xl p-6 border border-purple-500/30 hover:border-purple-400/50 transition-all duration-300 cursor-pointer group hover:scale-105"
+        >
           <div className="flex items-center space-x-3 mb-4">
-            <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Trophy className="w-5 h-5 text-purple-400" />
+            <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Trophy className="w-6 h-6 text-purple-400" />
             </div>
             <h3 className="text-lg font-semibold text-white">Get Recommendations</h3>
           </div>

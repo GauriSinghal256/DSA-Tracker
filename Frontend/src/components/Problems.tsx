@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Tag, Edit3, Save, X, FileText, Clock, TrendingUp, Filter, ChevronDown, ChevronUp } from 'lucide-react';
+import { Tag, Edit3, Save, X, FileText, Clock, TrendingUp, Filter, ChevronDown, ChevronUp, Code2, CheckCircle2 } from 'lucide-react';
 
 interface Problem {
   _id: string;
@@ -228,6 +228,19 @@ const Problems = () => {
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
                   <div className="flex items-center space-x-3 mb-2">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      problemHistory.status === 'Solved' 
+                        ? 'bg-green-500/20 border-2 border-green-500' 
+                        : problemHistory.status === 'Attempted'
+                        ? 'bg-yellow-500/20 border-2 border-yellow-500'
+                        : 'bg-orange-500/20 border-2 border-orange-500'
+                    }`}>
+                      {problemHistory.status === 'Solved' ? (
+                        <CheckCircle2 className="w-5 h-5 text-green-400" />
+                      ) : (
+                        <Code2 className="w-5 h-5 text-orange-400" />
+                      )}
+                    </div>
                     <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors">
                       {problemHistory.problem.title}
                     </h3>

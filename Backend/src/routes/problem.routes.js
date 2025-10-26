@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { logProblem, getUserProblems, updateProblemNotes, getAnalytics } from "../controllers/problem.controller.js";
+import { logProblem, getUserProblems, updateProblemNotes, getAnalytics, getNotifications } from "../controllers/problem.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { upload } from "../middlewares/multer.middleware.js";
 
@@ -13,5 +13,7 @@ router.get("/allProblems", verifyJWT, getUserProblems);
 router.put("/:problemHistoryId/notes", verifyJWT, updateProblemNotes);
 // Get analytics
 router.get("/analytics", verifyJWT, getAnalytics);
+// Get notifications
+router.get("/notifications", verifyJWT, getNotifications);
 
 export default router;

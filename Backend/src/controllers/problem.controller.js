@@ -158,6 +158,7 @@ export const updateProblemNotes = asyncHandler(async (req, res) => {
   });
 });
 
+
 // Get analytics for the user
 export const getAnalytics = asyncHandler(async (req, res) => {
   const userId = req.user._id;
@@ -272,5 +273,34 @@ export const getAnalytics = asyncHandler(async (req, res) => {
       topicStats: topicCounts,
       weeklyProgress: weeklyData
     }
+  });
+});
+
+// Get notifications for problems due for redo
+export const getNotifications = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  
+  // Find all problems with redoAt date that has arrived
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const histories = await ProblemHistory.find({
+    user: userId,
+    redoAt: { $lte: today },
+    status: { $nin: ['Redo'] } // Exclude problems already marked as Redo
+  }).populate('problem');
+
+  // Format notifications
+  const notifications = histories.map(h => ({
+    _id: h._id,
+    title: h.problem.title,
+    difficulty: h.problem.difficulty,
+    redoAt: h.redoAt,
+    platform: h.problem.platform
+  }));
+
+  return res.status(200).json({
+    success: true,
+    data: notifications
   });
 });

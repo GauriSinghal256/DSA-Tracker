@@ -4,11 +4,12 @@ import cookieParser from "cookie-parser";
 import userRouter from "./routes/user.routes.js"; 
 import problemRouter from "./routes/problem.routes.js";
 import aiRouter from "./routes/ai.routes.js";
+import communityRouter from "./routes/community.routes.js";
 
 const app = express();
 
 app.use(cors({
-    origin: "http://localhost:5173", // Frontend URL
+    origin: "http://localhost:5173", 
     credentials: true
 }));
 
@@ -21,5 +22,6 @@ app.use(cookieParser());
 app.use("/api/auth", userRouter);
 app.use("/api/problems",problemRouter)
 app.use("/api/ai", aiRouter);
+app.use("/api/community", communityRouter);
 
 export { app };

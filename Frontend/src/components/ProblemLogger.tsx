@@ -272,8 +272,10 @@ const ProblemLogger = () => {
               <div key={history._id} className="p-4 bg-gray-700/30 rounded-xl hover:bg-gray-700/50 transition-all duration-200 group">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center space-x-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${history.status === 'solved' ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
-                      {history.status === 'solved' ? <Check className="w-4 h-4 text-green-400"/> : <X className="w-4 h-4 text-red-400"/>}
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${history.status === 'Solved' ? 'bg-green-500/20' : history.status === 'Attempted' ? 'bg-yellow-500/20' : 'bg-gray-500/20'}`}>
+                      {history.status === 'Solved' && <Check className="w-4 h-4 text-green-400"/>}
+                      {history.status === 'Attempted' && <Check className="w-4 h-4 text-yellow-400"/>}
+                      {history.status === 'To Do' && <Check className="w-4 h-4 text-gray-400"/>}
                     </div>
                     <div>
                       <h3 className="font-semibold text-white group-hover:text-blue-400 transition-colors">{history.problem.title}</h3>

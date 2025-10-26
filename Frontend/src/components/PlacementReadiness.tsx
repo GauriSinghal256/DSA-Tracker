@@ -12,20 +12,117 @@ import {
   Calendar,
   ArrowRight,
   Star,
-  Zap
+  Zap,
+  Loader2
 } from 'lucide-react';
+
+interface AnalyticsData {
+  totalProblems: number;
+  solvedProblems: number;
+  attemptedProblems: number;
+  toDoProblems: number;
+  accuracy: number;
+  currentStreak: number;
+  weeklyAverage: number;
+  difficultyStats: {
+    Easy: number;
+    Medium: number;
+    Hard: number;
+  };
+  platformStats: Record<string, number>;
+  topicStats: Record<string, number>;
+  weeklyProgress: Array<{ week: string; problems: number }>;
+}
 
 const PlacementReadiness = () => {
   const [selectedCompany, setSelectedCompany] = useState('google');
   const [readinessScore, setReadinessScore] = useState(0);
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Animate readiness score on component mount
+    fetchAnalytics();
+  }, []);
+
+  useEffect(() => {
+    if (analyticsData) {
+      calculateReadinessScore();
+    }
+  }, [selectedCompany, analyticsData]);
+
+  const fetchAnalytics = async () => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) return;
+
+      const res = await fetch("http://localhost:8000/api/problems/analytics", {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+        credentials: "include",
+      });
+      
+      const data = await res.json();
+      
+      if (data.success && data.data) {
+        setAnalyticsData(data.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch analytics:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculateReadinessScore = () => {
+    if (!analyticsData) return;
+
+    const { solvedProblems, totalProblems, accuracy, currentStreak, difficultyStats, topicStats } = analyticsData;
+    
+    // Base score from total problems solved
+    let baseScore = Math.min((solvedProblems / 100) * 30, 30);
+    
+    // Accuracy bonus
+    const accuracyBonus = (accuracy / 100) * 20;
+    
+    // Streak bonus
+    const streakBonus = Math.min((currentStreak / 30) * 15, 15);
+    
+    // Difficulty distribution score
+    const { Easy, Medium, Hard } = difficultyStats;
+    const totalDiff = Easy + Medium + Hard;
+    let difficultyScore = 0;
+    if (totalDiff > 0) {
+      // Balanced distribution is better (not too many easy)
+      const easyRatio = Easy / totalDiff;
+      const mediumRatio = Medium / totalDiff;
+      const hardRatio = Hard / totalDiff;
+      
+      if (mediumRatio > 0.3 && hardRatio > 0.1) {
+        difficultyScore = 20; // Well balanced
+      } else if (mediumRatio > 0.2) {
+        difficultyScore = 15;
+      } else if (easyRatio < 0.7) {
+        difficultyScore = 10;
+      } else {
+        difficultyScore = 5;
+      }
+    }
+    
+    // Topic diversity score
+    const topicCount = Object.keys(topicStats).length;
+    const diversityScore = Math.min((topicCount / 15) * 15, 15);
+    
+    const calculatedScore = baseScore + accuracyBonus + streakBonus + difficultyScore + diversityScore;
+    
+    // Animate to the calculated score
     const timer = setTimeout(() => {
-      setReadinessScore(76);
-    }, 500);
+      setReadinessScore(Math.round(calculatedScore));
+    }, 300);
+    
     return () => clearTimeout(timer);
-  }, [selectedCompany]);
+  };
 
   const companies = [
     { 
@@ -84,27 +181,53 @@ const PlacementReadiness = () => {
     }
   ];
 
-  const skillAssessment: Record<string, Record<string, { score: number; required: number; status: string }>> = {
-    google: {
-      'Arrays & Strings': { score: 85, required: 90, status: 'good' },
-      'Dynamic Programming': { score: 45, required: 85, status: 'needs_work' },
-      'Graph Algorithms': { score: 72, required: 80, status: 'almost_ready' },
-      'System Design': { score: 35, required: 75, status: 'critical' },
-      'Trees & BST': { score: 88, required: 80, status: 'excellent' },
-      'Backtracking': { score: 60, required: 70, status: 'needs_work' }
-    },
-    amazon: {
-      'Arrays & Strings': { score: 85, required: 85, status: 'excellent' },
-      'Dynamic Programming': { score: 45, required: 80, status: 'needs_work' },
-      'Graph Algorithms': { score: 72, required: 75, status: 'almost_ready' },
-      'System Design': { score: 35, required: 70, status: 'critical' },
-      'Trees & BST': { score: 88, required: 75, status: 'excellent' },
-      'Greedy Algorithms': { score: 78, required: 80, status: 'almost_ready' }
-    }
+  const getSkillAssessment = (): Record<string, { score: number; required: number; status: string }> => {
+    if (!analyticsData) return {};
+    
+    const { topicStats } = analyticsData;
+    const skills: Record<string, { score: number; required: number; status: string }> = {};
+    
+    // Common important topics for placement
+    const importantTopics = [
+      'Array', 'String', 'Dynamic Programming', 'Graph', 'Tree', 'BST',
+      'Binary Search', 'Backtracking', 'Greedy', 'Heap', 'Stack', 'Queue',
+      'Linked List', 'Hash Table', 'Sorting', 'Two Pointers'
+    ];
+    
+    importantTopics.forEach(topic => {
+      // Check if topic exists in any form (case insensitive)
+      const matchingTopic = Object.keys(topicStats).find(t => 
+        t.toLowerCase().includes(topic.toLowerCase()) || 
+        topic.toLowerCase().includes(t.toLowerCase())
+      );
+      
+      if (matchingTopic) {
+        const count = topicStats[matchingTopic];
+        // Calculate score based on count (10 problems = 100%)
+        const score = Math.min((count / 10) * 100, 100);
+        // Required varies by company
+        const required = selectedCompany === 'google' || selectedCompany === 'meta' ? 90 : 80;
+        
+        let status = 'excellent';
+        if (score < required * 0.5) status = 'critical';
+        else if (score < required * 0.7) status = 'needs_work';
+        else if (score < required * 0.85) status = 'almost_ready';
+        else if (score < required) status = 'good';
+        else status = 'excellent';
+        
+        skills[topic] = { score: Math.round(score), required, status };
+      } else {
+        // Topic not attempted yet
+        const required = selectedCompany === 'google' || selectedCompany === 'meta' ? 90 : 80;
+        skills[topic] = { score: 0, required, status: 'critical' };
+      }
+    });
+    
+    return skills;
   };
 
   const currentCompany = companies.find(c => c.id === selectedCompany);
-  const currentSkills = skillAssessment[selectedCompany] || skillAssessment.google;
+  const currentSkills = getSkillAssessment();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -125,35 +248,61 @@ const PlacementReadiness = () => {
     return { label: 'Critical', color: 'text-red-400', icon: AlertTriangle };
   };
 
-  const readinessLevel = getReadinessLevel(currentCompany?.readiness || 0);
+  const readinessLevel = getReadinessLevel(readinessScore);
   const ReadinessIcon = readinessLevel.icon;
 
-  const improvementAreas = [
-    {
-      area: 'Dynamic Programming',
-      priority: 'High',
-      problems: ['Coin Change', 'Longest Common Subsequence', 'Edit Distance'],
-      estimatedTime: '3-4 weeks'
-    },
-    {
-      area: 'System Design',
-      priority: 'Critical',
-      problems: ['Design Twitter', 'Design Chat System', 'Design URL Shortener'],
-      estimatedTime: '4-6 weeks'
-    },
-    {
-      area: 'Graph Algorithms',
-      priority: 'Medium',
-      problems: ['Course Schedule', 'Network Delay Time', 'Critical Connections'],
-      estimatedTime: '2-3 weeks'
-    }
-  ];
+  const getImprovementAreas = () => {
+    if (!analyticsData) return [];
+    
+    const areas = Object.entries(currentSkills)
+      .filter(([_, data]) => data.status === 'critical' || data.status === 'needs_work')
+      .map(([topic, data]) => {
+        const problemCount = Math.ceil(data.required / 10 - data.score / 10);
+        const weeks = Math.ceil(problemCount / 7);
+        
+        return {
+          area: topic,
+          priority: data.status === 'critical' ? 'Critical' : 
+                   data.status === 'needs_work' ? 'High' : 'Medium',
+          problemCount,
+          estimatedTime: `${weeks}-${weeks + 1} weeks`,
+          score: data.score,
+          required: data.required
+        };
+      })
+      .sort((a, b) => {
+        if (a.priority === 'Critical' && b.priority !== 'Critical') return -1;
+        if (a.priority !== 'Critical' && b.priority === 'Critical') return 1;
+        return b.problemCount - a.problemCount;
+      })
+      .slice(0, 3);
+    
+    return areas;
+  };
+
+  const improvementAreas = getImprovementAreas();
 
   const mockInterviews = [
     { company: 'Google', date: '2024-01-20', score: 75, feedback: 'Good problem solving, work on optimization' },
     { company: 'Amazon', date: '2024-01-15', score: 82, feedback: 'Excellent approach, minor edge case missed' },
     { company: 'Microsoft', date: '2024-01-10', score: 68, feedback: 'Need to improve communication during coding' }
   ];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!analyticsData) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-gray-400">No analytics data available. Start logging problems to see your placement readiness!</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-fadeIn">
@@ -271,17 +420,19 @@ const PlacementReadiness = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white/5 rounded-lg p-4 text-center">
             <Brain className="w-8 h-8 text-blue-400 mx-auto mb-2" />
-            <div className="text-xl font-bold text-white">147</div>
+            <div className="text-xl font-bold text-white">{analyticsData?.solvedProblems || 0}</div>
             <div className="text-sm text-gray-400">Problems Solved</div>
           </div>
           <div className="bg-white/5 rounded-lg p-4 text-center">
             <BarChart3 className="w-8 h-8 text-green-400 mx-auto mb-2" />
-            <div className="text-xl font-bold text-white">73%</div>
+            <div className="text-xl font-bold text-white">{analyticsData?.accuracy || 0}%</div>
             <div className="text-sm text-gray-400">Success Rate</div>
           </div>
           <div className="bg-white/5 rounded-lg p-4 text-center">
             <Clock className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-            <div className="text-xl font-bold text-white">4-6</div>
+            <div className="text-xl font-bold text-white">
+              {readinessScore >= 80 ? 'Ready!' : readinessScore >= 70 ? '2-3' : readinessScore >= 60 ? '4-6' : '6-8'}
+            </div>
             <div className="text-sm text-gray-400">Weeks to Ready</div>
           </div>
         </div>
@@ -341,7 +492,13 @@ const PlacementReadiness = () => {
           </div>
           
           <div className="space-y-4">
-            {improvementAreas.map((area, index) => (
+            {improvementAreas.length === 0 ? (
+              <div className="text-center py-8">
+                <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-3" />
+                <p className="text-gray-400">Great job! You're on track with all key topics.</p>
+              </div>
+            ) : (
+              improvementAreas.map((area, index) => (
               <div key={index} className="p-4 bg-gray-700/30 rounded-xl hover:bg-gray-700/50 transition-all duration-200 group">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
@@ -365,28 +522,25 @@ const PlacementReadiness = () => {
                       </div>
                       <div className="flex items-center space-x-1">
                         <BarChart3 className="w-3 h-3" />
-                        <span>{area.problems.length} problems</span>
+                        <span>{area.problemCount} problems needed</span>
                       </div>
                     </div>
                     
                     <div className="flex flex-wrap gap-1">
-                      {area.problems.slice(0, 2).map((problem, pIndex) => (
-                        <span key={pIndex} className="px-2 py-1 bg-blue-500/20 text-blue-300 rounded text-xs">
-                          {problem}
-                        </span>
-                      ))}
-                      {area.problems.length > 2 && (
-                        <span className="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs">
-                          +{area.problems.length - 2} more
-                        </span>
-                      )}
+                      <span className="px-2 py-1 bg-blue-500/20 text-blue-300 rounded text-xs">
+                        Current: {area.score}%
+                      </span>
+                      <span className="px-2 py-1 bg-green-500/20 text-green-300 rounded text-xs">
+                        Target: {area.required}%
+                      </span>
                     </div>
                   </div>
                   
                   <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-white transition-colors" />
                 </div>
               </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -472,7 +626,9 @@ const PlacementReadiness = () => {
               <p className="text-green-300 text-sm">Based on your current progress and dedication</p>
             </div>
             <div className="text-right">
-              <div className="text-3xl font-bold text-green-400">6-8</div>
+              <div className="text-3xl font-bold text-green-400">
+                {readinessScore >= 80 ? 'Ready!' : readinessScore >= 70 ? '2-3' : readinessScore >= 60 ? '4-6' : '6-8'}
+              </div>
               <div className="text-sm text-gray-400">weeks</div>
             </div>
           </div>

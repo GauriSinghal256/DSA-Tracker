@@ -1,14 +1,23 @@
 // src/App.tsx
 import React, { useEffect, useState } from "react";
-import { Menu, X, BarChart3, Target, Calendar, BookOpen, Zap, TrendingUp, FileText } from "lucide-react";
+import { Menu, X, BarChart3, Target, Calendar, BookOpen, Zap, TrendingUp, FileText, Users, Bell } from "lucide-react";
 import Dashboard from "./components/Dashboard";
 import ProblemLogger from "./components/ProblemLogger";
 import Problems from "./components/Problems";
 import Analytics from "./components/Analytics";
 import Recommendations from "./components/Recommendations";
 import PlacementReadiness from "./components/PlacementReadiness";
+import Community from "./components/Community";
 // @ts-ignore: importing a JS (JSX) file without type declarations
 import Register from "./components/login_Signup/Register.jsx";
+
+interface Notification {
+  _id: string;
+  title: string;
+  difficulty: string;
+  redoAt: string;
+  platform: string;
+}
 
 function App() {
   const [activeTab, setActiveTab] = useState<string>("dashboard");
@@ -16,6 +25,9 @@ function App() {
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [user, setUser] = useState<{ username?: string } | null>(null);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [showNotifications, setShowNotifications] = useState<boolean>(false);
+  const [notificationCount, setNotificationCount] = useState<number>(0);
 
   useEffect(() => {
     setIsLoaded(true);
@@ -26,8 +38,51 @@ function App() {
     if (saved === "true") {
       setIsAuthenticated(true);
       if (savedUser) setUser(JSON.parse(savedUser));
+      fetchNotifications();
+      // Poll for notifications every 5 minutes
+      const interval = setInterval(fetchNotifications, 5 * 60 * 1000);
+      return () => clearInterval(interval);
     }
   }, []);
+
+  // Close notification dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.notification-dropdown')) {
+        setShowNotifications(false);
+      }
+    };
+
+    if (showNotifications) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showNotifications]);
+
+  const fetchNotifications = async () => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) return;
+
+      const res = await fetch("http://localhost:8000/api/problems/notifications", {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+        credentials: "include",
+      });
+      
+      const data = await res.json();
+      
+      if (data.success && data.data) {
+        setNotifications(data.data);
+        setNotificationCount(data.data.length);
+      }
+    } catch (err) {
+      console.error("Failed to fetch notifications:", err);
+    }
+  };
 
   const handleAuthSuccess = (userData: { username?: string }) => {
     setIsAuthenticated(true);
@@ -56,13 +111,18 @@ function App() {
     { id: "problems", label: "My Problems", icon: FileText },
     { id: "analytics", label: "Analytics", icon: TrendingUp },
     { id: "recommendations", label: "AI Recommendations", icon: Zap },
+    { id: "community", label: "Community", icon: Users },
     { id: "readiness", label: "Placement Readiness", icon: Calendar },
   ];
 
   const renderActiveComponent = () => {
     switch (activeTab) {
       case "dashboard":
-        return <Dashboard onNavigateToRecommendations={() => setActiveTab("recommendations")} />;
+        return <Dashboard 
+          onNavigateToRecommendations={() => setActiveTab("recommendations")} 
+          onNavigateToLogger={() => setActiveTab("logger")}
+          onNavigateToAnalytics={() => setActiveTab("analytics")}
+        />;
       case "logger":
         return <ProblemLogger />;
       case "problems":
@@ -71,10 +131,16 @@ function App() {
         return <Analytics />;
       case "recommendations":
         return <Recommendations />;
+      case "community":
+        return <Community />;
       case "readiness":
         return <PlacementReadiness />;
       default:
-        return <Dashboard onNavigateToRecommendations={() => setActiveTab("recommendations")} />;
+        return <Dashboard 
+          onNavigateToRecommendations={() => setActiveTab("recommendations")}
+          onNavigateToLogger={() => setActiveTab("logger")}
+          onNavigateToAnalytics={() => setActiveTab("analytics")}
+        />;
     }
   };
 
@@ -119,6 +185,68 @@ function App() {
             </nav>
 
             <div className="flex items-center gap-3">
+              {/* Notification Bell */}
+              <div className="relative notification-dropdown">
+                <button
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="p-2 rounded-lg text-gray-300 hover:text-white hover:bg-gray-700/50 transition-colors relative"
+                >
+                  <Bell className="w-6 h-6" />
+                  {notificationCount > 0 && (
+                    <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      {notificationCount}
+                    </span>
+                  )}
+                </button>
+
+                {/* Notification Dropdown */}
+                {showNotifications && (
+                  <div className="absolute right-0 mt-2 w-96 bg-gray-800 rounded-xl shadow-2xl border border-gray-700 max-h-96 overflow-auto z-50 notification-dropdown">
+                    <div className="p-4 border-b border-gray-700">
+                      <h3 className="text-lg font-bold text-white">Notifications</h3>
+                      <p className="text-sm text-gray-400">Problems due for redo</p>
+                    </div>
+                    <div className="p-2">
+                      {notifications.length === 0 ? (
+                        <div className="text-center py-8 text-gray-400">
+                          <Bell className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                          <p>No pending notifications</p>
+                        </div>
+                      ) : (
+                        notifications.map((notification) => (
+                          <div
+                            key={notification._id}
+                            className="p-3 rounded-lg hover:bg-gray-700/50 mb-2 transition-colors cursor-pointer"
+                            onClick={() => {
+                              setActiveTab("problems");
+                              setShowNotifications(false);
+                            }}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <p className="text-white font-medium text-sm">{notification.title}</p>
+                                <p className="text-xs text-gray-400 mt-1">{notification.platform}</p>
+                              </div>
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                notification.difficulty === 'Easy' ? 'bg-green-500/20 text-green-400' :
+                                notification.difficulty === 'Medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                                notification.difficulty === 'Medium-Hard' ? 'bg-orange-500/20 text-orange-400' :
+                                'bg-red-500/20 text-red-400'
+                              }`}>
+                                {notification.difficulty}
+                              </span>
+                            </div>
+                            <p className="text-xs text-blue-400 mt-2">
+                              Due: {new Date(notification.redoAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Logged-in user info */}
               <div className="hidden sm:flex flex-col text-right">
                 <span className="text-sm text-gray-300">
