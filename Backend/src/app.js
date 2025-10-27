@@ -8,10 +8,10 @@ import communityRouter from "./routes/community.routes.js";
 
 const app = express();
 
-app.use(cors({
-    origin: "http://localhost:5173", 
-    credentials: true
-}));
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://dsa-tracker-pearl.vercel.app"
+];
 
 app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true }));
