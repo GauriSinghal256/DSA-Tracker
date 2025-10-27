@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Calendar, Flame, Target, Trophy, TrendingUp, Clock, User, Mail, GraduationCap, Code2, CheckCircle2, AlertCircle } from 'lucide-react';
-import StreakCalendar from './StreakCalendar';
+import { useState, useEffect } from 'react';
+import { Calendar, Flame, Target, Trophy, TrendingUp, Clock, GraduationCap, CheckCircle2, AlertCircle, Mail } from 'lucide-react';
+import { StreakCalendar, StreakDayData } from './streak';
 import StatsCard from './StatsCard';
 
 interface ProblemHistory {
@@ -30,11 +30,12 @@ interface DashboardProps {
   onNavigateToRecommendations?: () => void;
   onNavigateToLogger?: () => void;
   onNavigateToAnalytics?: () => void;
+  refreshTrigger?: number; // Add refresh trigger prop
 }
 
-const Dashboard = ({ onNavigateToRecommendations, onNavigateToLogger, onNavigateToAnalytics }: DashboardProps) => {
+const Dashboard = ({ onNavigateToRecommendations, onNavigateToLogger, onNavigateToAnalytics, refreshTrigger }: DashboardProps) => {
   const [user, setUser] = useState<UserData | null>(null);
-  const [streakData, setStreakData] = useState<{ date: Date; count: number; intensity: number }[]>([]);
+  const [streakData, setStreakData] = useState<StreakDayData[]>([]);
   const [stats, setStats] = useState({
     currentStreak: 0,
     longestStreak: 0,
@@ -72,86 +73,130 @@ const Dashboard = ({ onNavigateToRecommendations, onNavigateToLogger, onNavigate
     fetchUserData();
   }, []);
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        const token = localStorage.getItem("accessToken");
-        if (!token) return;
+  const fetchDashboardData = async () => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) return;
+      
+      const res = await fetch("http://localhost:8000/api/problems/allProblems", {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+        credentials: "include",
+      });
+      const data = await res.json();
+      
+      if (data.success && data.data) {
+        const problems: ProblemHistory[] = data.data;
+        console.log('Problems fetched:', problems.length);
+        console.log('Solved problems:', problems.filter(p => p.status === 'Solved').length);
         
-        const res = await fetch("http://localhost:8000/api/problems/allProblems", {
-          method: "GET",
-          headers: {
-            "Authorization": `Bearer ${token}`,
-          },
-          credentials: "include",
+        // Calculate streaks
+        const { currentStreak, longestStreak } = calculateStreaks(problems);
+        
+        // Count problems
+        const solvedProblems = problems.filter(p => p.status === 'Solved');
+        const totalProblems = problems.length;
+        
+        // Calculate weekly and monthly problems
+        const now = new Date();
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        
+        const thisWeek = problems.filter(p => {
+          const solvedDate = p.solvedAt || p.createdAt;
+          return new Date(solvedDate) >= weekAgo;
+        }).length;
+        
+        const thisMonth = problems.filter(p => {
+          const solvedDate = p.solvedAt || p.createdAt;
+          return new Date(solvedDate) >= monthAgo;
+        }).length;
+        
+        // Calculate accuracy (solved vs total)
+        const accuracy = totalProblems > 0 ? Math.round((solvedProblems.length / totalProblems) * 100) : 0;
+        
+        setStats({
+          currentStreak,
+          longestStreak,
+          totalProblems,
+          thisWeek,
+          thisMonth,
+          accuracy
         });
-        const data = await res.json();
         
-        if (data.success && data.data) {
-          const problems: ProblemHistory[] = data.data;
-          
-          // Calculate streaks
-          const { currentStreak, longestStreak } = calculateStreaks(problems);
-          
-          // Count problems
-          const solvedProblems = problems.filter(p => p.status === 'Solved');
-          const totalProblems = problems.length;
-          
-          // Calculate weekly and monthly problems
-          const now = new Date();
-          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-          
-          const thisWeek = problems.filter(p => {
-            const solvedDate = p.solvedAt || p.createdAt;
-            return new Date(solvedDate) >= weekAgo;
-          }).length;
-          
-          const thisMonth = problems.filter(p => {
-            const solvedDate = p.solvedAt || p.createdAt;
-            return new Date(solvedDate) >= monthAgo;
-          }).length;
-          
-          // Calculate accuracy (solved vs total)
-          const accuracy = totalProblems > 0 ? Math.round((solvedProblems.length / totalProblems) * 100) : 0;
-          
-          setStats({
-            currentStreak,
-            longestStreak,
-            totalProblems,
-            thisWeek,
-            thisMonth,
-            accuracy
-          });
-          
-          // Set recent activity
-          const recent = problems
-            .sort((a, b) => {
-              const dateA = new Date(a.solvedAt || a.createdAt);
-              const dateB = new Date(b.solvedAt || b.createdAt);
-              return dateB.getTime() - dateA.getTime();
-            })
-            .slice(0, 4)
-            .map(p => ({
-              problem: p.problem.title,
-              platform: p.problem.platform,
-              difficulty: p.problem.difficulty,
-              solved: p.status === 'Solved',
-              time: getTimeAgo(new Date(p.solvedAt || p.createdAt))
-            }));
-          
-          setRecentActivity(recent);
-          
-          // Generate streak calendar data
-          generateStreakCalendarData(problems);
+        // Set recent activity
+        const recent = problems
+          .sort((a, b) => {
+            const dateA = new Date(a.solvedAt || a.createdAt);
+            const dateB = new Date(b.solvedAt || b.createdAt);
+            return dateB.getTime() - dateA.getTime();
+          })
+          .slice(0, 4)
+          .map(p => ({
+            problem: p.problem.title,
+            platform: p.problem.platform,
+            difficulty: p.problem.difficulty,
+            solved: p.status === 'Solved',
+            time: getTimeAgo(new Date(p.solvedAt || p.createdAt))
+          }));
+        
+        setRecentActivity(recent);
+        
+        // Generate streak calendar data
+        generateStreakCalendarData(problems);
+        
+        // Add some test data if no problems exist
+        if (problems.length === 0) {
+          console.log('No problems found, adding test data');
+          const testProblems = [
+            {
+              _id: 'test1',
+              problem: { title: 'Test Problem 1', platform: 'LeetCode', difficulty: 'Easy', tags: ['Array'] },
+              solvedAt: new Date().toISOString(),
+              status: 'Solved',
+              createdAt: new Date().toISOString()
+            },
+            {
+              _id: 'test2', 
+              problem: { title: 'Test Problem 2', platform: 'LeetCode', difficulty: 'Medium', tags: ['String'] },
+              solvedAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // Yesterday
+              status: 'Solved',
+              createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+            }
+          ];
+          generateStreakCalendarData(testProblems as ProblemHistory[]);
         }
-      } catch (err) {
-        console.error("Failed to fetch dashboard data:", err);
       }
+    } catch (err) {
+      console.error("Failed to fetch dashboard data:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+    
+    // Listen for problem updates
+    const handleProblemUpdate = () => {
+      fetchDashboardData();
     };
     
-    fetchDashboardData();
+    // Add event listener for problem updates
+    window.addEventListener('problemUpdated', handleProblemUpdate);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('problemUpdated', handleProblemUpdate);
+    };
   }, []);
+
+  // Refresh data when refreshTrigger changes
+  useEffect(() => {
+    if (refreshTrigger) {
+      fetchDashboardData();
+    }
+  }, [refreshTrigger]);
 
   const calculateStreaks = (problems: ProblemHistory[]) => {
     if (problems.length === 0) return { currentStreak: 0, longestStreak: 0 };
@@ -218,33 +263,55 @@ const Dashboard = ({ onNavigateToRecommendations, onNavigateToLogger, onNavigate
   };
 
   const generateStreakCalendarData = (problems: ProblemHistory[]) => {
+    // Get all solved problems
+    const solvedProblems = problems.filter(p => p.status === 'Solved');
+    
+    // Count problems by date
+    const dateCountMap = new Map<string, number>();
+    
+    solvedProblems.forEach(problem => {
+      const date = new Date(problem.solvedAt || problem.createdAt);
+      // Normalize to YYYY-MM-DD format
+      const dateKey = date.toISOString().split('T')[0];
+      dateCountMap.set(dateKey, (dateCountMap.get(dateKey) || 0) + 1);
+    });
+    
+    console.log('Date count map:', Array.from(dateCountMap.entries()));
+    
+    // Generate data for the last 371 days (53 weeks * 7 days + a few days)
+    const data: StreakDayData[] = [];
     const today = new Date();
-    const oneYearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
+    today.setHours(0, 0, 0, 0);
     
-    // Count problems per day
-    const dailyCounts = new Map<string, number>();
+    // Start 371 days ago (to show full year + some overlap)
+    const startDate = new Date(today);
+    startDate.setDate(startDate.getDate() - 371);
     
-    problems
-      .filter(p => p.status === 'Solved')
-      .forEach(p => {
-        const date = new Date(p.solvedAt || p.createdAt);
-        const dateStr = date.toDateString();
-        dailyCounts.set(dateStr, (dailyCounts.get(dateStr) || 0) + 1);
-      });
+    const currentDate = new Date(startDate);
     
-    const data = [];
-    for (let d = new Date(oneYearAgo); d <= today; d.setDate(d.getDate() + 1)) {
-      const dateStr = d.toDateString();
-      const count = dailyCounts.get(dateStr) || 0;
-      const intensity = count > 0 ? Math.min(Math.ceil(count / 3), 4) : 0;
+    while (currentDate <= today) {
+      const dateKey = currentDate.toISOString().split('T')[0];
+      const count = dateCountMap.get(dateKey) || 0;
+      
+      // Calculate intensity based on problem count (GitHub-like)
+      let intensity = 0;
+      if (count > 0) {
+        if (count >= 5) intensity = 4;
+        else if (count >= 3) intensity = 3;
+        else if (count >= 2) intensity = 2;
+        else intensity = 1;
+      }
       
       data.push({
-        date: new Date(d),
+        date: new Date(currentDate),
         count,
         intensity
       });
+      
+      currentDate.setDate(currentDate.getDate() + 1);
     }
     
+    console.log('Streak data generated:', data.filter(d => d.count > 0));
     setStreakData(data);
   };
 

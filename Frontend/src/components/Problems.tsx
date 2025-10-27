@@ -115,6 +115,10 @@ const Problems = () => {
         );
         setEditingId(null);
         setEditNotes('');
+        
+        // Dispatch event to update dashboard
+        window.dispatchEvent(new CustomEvent('problemUpdated'));
+        
         alert("Notes updated successfully!");
       }
     } catch (err) {

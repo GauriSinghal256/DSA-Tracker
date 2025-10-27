@@ -304,3 +304,31 @@ export const getNotifications = asyncHandler(async (req, res) => {
     data: notifications
   });
 });
+
+// Mark problem as redone
+export const markAsRedone = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const { problemHistoryId } = req.params;
+
+  const problemHistory = await ProblemHistory.findOne({
+    _id: problemHistoryId,
+    user: userId
+  });
+
+  if (!problemHistory) {
+    throw new ApiError(404, "Problem history not found");
+  }
+
+  // Update the status to 'Redo' and set solvedAt to current time
+  problemHistory.status = 'Redo';
+  problemHistory.solvedAt = new Date();
+  problemHistory.redoAt = null; // Clear the redo date since it's been redone
+  
+  await problemHistory.save();
+
+  return res.status(200).json({
+    success: true,
+    message: "Problem marked as redone successfully",
+    data: problemHistory
+  });
+});

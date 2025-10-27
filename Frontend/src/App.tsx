@@ -1,6 +1,6 @@
 // src/App.tsx
 import React, { useEffect, useState } from "react";
-import { Menu, X, BarChart3, Target, Calendar, BookOpen, Zap, TrendingUp, FileText, Users, Bell } from "lucide-react";
+import { Menu, X, BarChart3, Calendar, BookOpen, Zap, TrendingUp, FileText, Users, Bell, Check, Clock } from "lucide-react";
 import Dashboard from "./components/Dashboard";
 import ProblemLogger from "./components/ProblemLogger";
 import Problems from "./components/Problems";
@@ -28,6 +28,9 @@ function App() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState<boolean>(false);
   const [notificationCount, setNotificationCount] = useState<number>(0);
+  const [showTimerDialog, setShowTimerDialog] = useState<boolean>(false);
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
+  const [dashboardRefreshTrigger, setDashboardRefreshTrigger] = useState<number>(0);
 
   useEffect(() => {
     setIsLoaded(true);
@@ -84,6 +87,56 @@ function App() {
     }
   };
 
+  const handleMarkAsRedone = async (notification: Notification) => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) return;
+
+      const res = await fetch(`http://localhost:8000/api/problems/${notification._id}/redo`, {
+        method: "PUT",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+      
+      const data = await res.json();
+      
+      if (data.success) {
+        // Remove the notification from the list
+        setNotifications(prev => prev.filter(n => n._id !== notification._id));
+        setNotificationCount(prev => prev - 1);
+        setShowTimerDialog(false);
+        setSelectedNotification(null);
+        
+        // Dispatch event to update dashboard
+        window.dispatchEvent(new CustomEvent('problemUpdated'));
+        
+        // Show success message
+        alert("Problem marked as redone successfully!");
+      } else {
+        throw new Error(data.message || "Failed to mark as redone");
+      }
+    } catch (err: any) {
+      console.error("Failed to mark as redone:", err);
+      alert(`Error: ${err.message || "Failed to mark as redone"}`);
+    }
+  };
+
+  const handleRedoClick = (notification: Notification) => {
+    setSelectedNotification(notification);
+    setShowTimerDialog(true);
+  };
+
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId);
+    // Trigger dashboard refresh when navigating to dashboard
+    if (tabId === "dashboard") {
+      setDashboardRefreshTrigger(prev => prev + 1);
+    }
+  };
+
   const handleAuthSuccess = (userData: { username?: string }) => {
     setIsAuthenticated(true);
     setUser(userData || { username: "user" });
@@ -122,6 +175,7 @@ function App() {
           onNavigateToRecommendations={() => setActiveTab("recommendations")} 
           onNavigateToLogger={() => setActiveTab("logger")}
           onNavigateToAnalytics={() => setActiveTab("analytics")}
+          refreshTrigger={dashboardRefreshTrigger}
         />;
       case "logger":
         return <ProblemLogger />;
@@ -140,6 +194,7 @@ function App() {
           onNavigateToRecommendations={() => setActiveTab("recommendations")}
           onNavigateToLogger={() => setActiveTab("logger")}
           onNavigateToAnalytics={() => setActiveTab("analytics")}
+          refreshTrigger={dashboardRefreshTrigger}
         />;
     }
   };
@@ -159,7 +214,7 @@ function App() {
                 <BarChart3 className="w-5 h-5 text-white" />
               </div>
               <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                DSA Tracker Pro
+                DSA Tracker
               </h1>
             </div>
 
@@ -170,7 +225,7 @@ function App() {
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() => handleTabChange(tab.id)}
                     className={`px-4 py-2 rounded-lg flex items-center space-x-2 transition-all duration-200 ${
                       activeTab === tab.id
                         ? "bg-blue-600/20 text-blue-400 shadow-lg"
@@ -216,11 +271,7 @@ function App() {
                         notifications.map((notification) => (
                           <div
                             key={notification._id}
-                            className="p-3 rounded-lg hover:bg-gray-700/50 mb-2 transition-colors cursor-pointer"
-                            onClick={() => {
-                              setActiveTab("problems");
-                              setShowNotifications(false);
-                            }}
+                            className="p-3 rounded-lg hover:bg-gray-700/50 mb-2 transition-colors"
                           >
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
@@ -239,6 +290,27 @@ function App() {
                             <p className="text-xs text-blue-400 mt-2">
                               Due: {new Date(notification.redoAt).toLocaleDateString()}
                             </p>
+                            <div className="flex items-center justify-between mt-3">
+                              <button
+                                onClick={() => {
+                                  setActiveTab("problems");
+                                  setShowNotifications(false);
+                                }}
+                                className="text-xs text-gray-400 hover:text-white hover:underline"
+                              >
+                                View Problem
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRedoClick(notification);
+                                }}
+                                className="flex items-center space-x-1 px-3 py-1 bg-green-600/20 text-green-400 rounded-lg hover:bg-green-600/30 transition-colors text-xs"
+                              >
+                                <Check className="w-3 h-3" />
+                                <span>Mark as Redone</span>
+                              </button>
+                            </div>
                           </div>
                         ))
                       )}
@@ -281,7 +353,7 @@ function App() {
                   <button
                     key={tab.id}
                     onClick={() => {
-                      setActiveTab(tab.id);
+                      handleTabChange(tab.id);
                       setIsMobileMenuOpen(false);
                     }}
                     className={`w-full px-4 py-3 rounded-lg flex items-center space-x-3 transition-all duration-200 ${
@@ -313,6 +385,54 @@ function App() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="animate-fadeIn">{renderActiveComponent()}</div>
       </main>
+
+      {/* Timer Confirmation Dialog */}
+      {showTimerDialog && selectedNotification && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4 border border-gray-700">
+            <div className="flex items-center space-x-3 mb-4">
+              <Clock className="w-6 h-6 text-blue-400" />
+              <h3 className="text-lg font-bold text-white">Mark as Redone</h3>
+            </div>
+            
+            <div className="mb-4">
+              <p className="text-gray-300 mb-2">
+                You've completed: <span className="text-white font-medium">{selectedNotification.title}</span>
+              </p>
+              <p className="text-sm text-gray-400">
+                Platform: {selectedNotification.platform} • Difficulty: {selectedNotification.difficulty}
+              </p>
+            </div>
+
+            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 mb-6">
+              <p className="text-blue-300 text-sm font-medium mb-2">🎯 Great job! Would you like to set a timer for your next problem?</p>
+              <p className="text-gray-400 text-xs">
+                This helps you maintain focus and track your problem-solving sessions.
+              </p>
+            </div>
+
+            <div className="flex space-x-3">
+              <button
+                onClick={() => {
+                  handleMarkAsRedone(selectedNotification);
+                }}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+              >
+                Mark as Redone
+              </button>
+              <button
+                onClick={() => {
+                  setShowTimerDialog(false);
+                  setSelectedNotification(null);
+                }}
+                className="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

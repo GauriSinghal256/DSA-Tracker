@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, BookOpen, Check, X } from 'lucide-react';
+import { Plus, BookOpen, Check } from 'lucide-react';
 
 interface Problem {
   _id: string;
@@ -141,6 +141,9 @@ const ProblemLogger = () => {
         url: '',
         noteImage: null
       });
+      
+      // Dispatch event to update dashboard
+      window.dispatchEvent(new CustomEvent('problemUpdated'));
       
       alert("Problem logged successfully!");
     } catch (err: any) {

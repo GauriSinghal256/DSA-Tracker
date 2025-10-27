@@ -27,9 +27,19 @@ const Recommendations = () => {
   const [lastProblem, setLastProblem] = useState<ProblemHistory | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Fetch last solved problem
+  // Initialize with a basic welcome message and fetch last solved problem
   useEffect(() => {
+    // Only initialize with welcome message if messages are empty
+    if (messages.length === 0) {
+      setMessages([{
+        role: 'assistant',
+        content: 'Welcome! I\'m your AI coding assistant. I can help you with:\n\n• Problem-solving strategies\n• Algorithm explanations\n• Study plan recommendations\n• Code optimization tips\n• Interview preparation\n\nAsk me anything about your DSA journey!',
+        timestamp: new Date()
+      }]);
+    }
+    
     fetchLastSolvedProblem();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-scroll to bottom when new messages arrive
@@ -67,20 +77,6 @@ const Recommendations = () => {
           })[0];
           
           setLastProblem(lastSolved);
-          
-          // Add welcome message with default prompt
-          const defaultMessage: Message = {
-            role: 'assistant',
-            content: `Welcome! I'm your AI coding assistant. I see you last solved "${lastSolved.problem.title}". What would you like help with?\n\nYou can ask me to:\n• Suggest similar problems\n• Explain different approaches\n• Recommend next problems\n• Help with concepts\n\nOr just ask anything about your coding journey! 🚀`,
-            timestamp: new Date()
-          };
-          setMessages([defaultMessage]);
-        } else {
-          setMessages([{
-            role: 'assistant',
-            content: 'Welcome! I\'m your AI coding assistant. Start solving problems and I\'ll provide personalized recommendations based on your progress!',
-            timestamp: new Date()
-          }]);
         }
       }
     } catch (err) {
@@ -102,6 +98,8 @@ const Recommendations = () => {
     setIsLoading(true);
 
     try {
+      console.log('Sending AI request:', { message: inputMessage, lastProblem });
+      
       // Call backend API to get AI response
       const response = await fetch('http://localhost:8000/api/ai/chat', {
         method: 'POST',
@@ -121,12 +119,15 @@ const Recommendations = () => {
         }),
       });
 
+      console.log('Response status:', response.status);
       const data = await response.json();
+      console.log('Response data:', data);
+      console.log('Extracted response:', data.data?.response);
 
       if (data.success) {
         const aiMessage: Message = {
           role: 'assistant',
-          content: data.response,
+          content: data.data.response,
           timestamp: new Date()
         };
         setMessages(prev => [...prev, aiMessage]);
@@ -163,6 +164,19 @@ const Recommendations = () => {
         <p className="text-gray-400">
           Get personalized recommendations and guidance for your DSA journey
         </p>
+      </div>
+
+      {/* AI Status Banner */}
+      <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+        <div className="flex items-center space-x-3">
+          <Sparkles className="w-5 h-5 text-blue-400" />
+          <div>
+            <p className="text-blue-400 font-medium">AI Assistant Ready</p>
+            <p className="text-gray-400 text-sm">
+              Get helpful DSA guidance and tips! For personalized AI responses, configure GEMINI_API_KEY in the backend .env file.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Chat Container */}
