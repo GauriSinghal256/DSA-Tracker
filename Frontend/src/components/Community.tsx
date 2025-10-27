@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, MessageCircle, Send, Image, X, Hash, Trash2, Sparkles, Users2 } from 'lucide-react';
 import axios from 'axios';
+import API_BASE_URL from '../config/api';
 
 interface User {
   _id: string;
@@ -45,7 +46,7 @@ const Community = () => {
   const fetchCurrentUser = async () => {
     try {
       const token = localStorage.getItem('accessToken');
-      const res = await axios.get('http://localhost:8000/api/auth/current-user', {
+      const res = await axios.get(`${API_BASE_URL}/api/auth/current-user`, {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,
       });
@@ -60,7 +61,7 @@ const Community = () => {
   const fetchPosts = async () => {
     try {
       const token = localStorage.getItem('accessToken');
-      const res = await axios.get('http://localhost:8000/api/community/posts', {
+      const res = await axios.get(`${API_BASE_URL}/api/community/posts`, {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,
       });
@@ -104,7 +105,7 @@ const Community = () => {
       formData.append('content', postContent);
       selectedImages.forEach(image => formData.append('images', image));
 
-      await axios.post('http://localhost:8000/api/community/posts', formData, {
+      await axios.post(`${API_BASE_URL}/api/community/posts`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data',
@@ -126,7 +127,7 @@ const Community = () => {
   const handleLike = async (postId: string) => {
     try {
       const token = localStorage.getItem('accessToken');
-      await axios.patch(`http://localhost:8000/api/community/posts/${postId}/like`, {}, {
+      await axios.patch(`${API_BASE_URL}/api/community/posts/${postId}/like`, {}, {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,
       });
@@ -142,7 +143,7 @@ const Community = () => {
 
     try {
       const token = localStorage.getItem('accessToken');
-      await axios.post(`http://localhost:8000/api/community/posts/${postId}/comment`, 
+      await axios.post(`${API_BASE_URL}/api/community/posts/${postId}/comment`, 
         { content: commentText },
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -161,7 +162,7 @@ const Community = () => {
 
     try {
       const token = localStorage.getItem('accessToken');
-      await axios.delete(`http://localhost:8000/api/community/posts/${postId}`, {
+      await axios.delete(`${API_BASE_URL}/api/community/posts/${postId}`, {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,
       });

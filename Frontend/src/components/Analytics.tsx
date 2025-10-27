@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart3, PieChart, TrendingUp, Target, Calendar, Filter, Loader2 } from 'lucide-react';
+import API_BASE_URL from '../config/api';
 
 interface AnalyticsData {
   totalProblems: number;
@@ -33,7 +34,7 @@ const Analytics = () => {
       const token = localStorage.getItem("accessToken");
       if (!token) return;
 
-      const res = await fetch("http://localhost:8000/api/problems/analytics", {
+      const res = await fetch(`${API_BASE_URL}/api/problems/analytics`, {
         method: "GET",
         headers: {
           "Authorization": `Bearer ${token}`,

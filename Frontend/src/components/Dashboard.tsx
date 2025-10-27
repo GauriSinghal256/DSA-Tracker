@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Calendar, Flame, Target, Trophy, TrendingUp, Clock, GraduationCap, CheckCircle2, AlertCircle, Mail } from 'lucide-react';
 import { StreakCalendar, StreakDayData } from './streak';
 import StatsCard from './StatsCard';
+import API_BASE_URL from '../config/api';
 
 interface ProblemHistory {
   _id: string;
@@ -53,7 +54,7 @@ const Dashboard = ({ onNavigateToRecommendations, onNavigateToLogger, onNavigate
         const token = localStorage.getItem("accessToken");
         if (!token) return;
         
-        const res = await fetch("http://localhost:8000/api/auth/current-user", {
+        const res = await fetch(`${API_BASE_URL}/api/auth/current-user`, {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${token}`,
@@ -78,7 +79,7 @@ const Dashboard = ({ onNavigateToRecommendations, onNavigateToLogger, onNavigate
       const token = localStorage.getItem("accessToken");
       if (!token) return;
       
-      const res = await fetch("http://localhost:8000/api/problems/allProblems", {
+      const res = await fetch(`${API_BASE_URL}/api/problems/allProblems`, {
         method: "GET",
         headers: {
           "Authorization": `Bearer ${token}`,

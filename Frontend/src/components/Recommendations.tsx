@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Bot, User, Sparkles, Loader2 } from 'lucide-react';
+import API_BASE_URL from '../config/api';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -46,7 +47,7 @@ const Recommendations = () => {
       const token = localStorage.getItem("accessToken");
       if (!token) return;
 
-      const res = await fetch("http://localhost:8000/api/problems/allProblems", {
+      const res = await fetch(`${API_BASE_URL}/api/problems/allProblems`, {
         method: "GET",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -114,7 +115,7 @@ const Recommendations = () => {
       console.log('Sending AI request:', { message: inputMessage, lastProblem });
       
       // Call backend API to get AI response
-      const response = await fetch('http://localhost:8000/api/ai/chat', {
+      const response = await fetch(`${API_BASE_URL}/api/ai/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

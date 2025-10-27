@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Tag, Edit3, Save, X, FileText, Clock, TrendingUp, Filter, ChevronDown, ChevronUp, Code2, CheckCircle2 } from 'lucide-react';
+import API_BASE_URL from '../config/api';
 
 interface Problem {
   _id: string;
@@ -41,7 +42,7 @@ const Problems = () => {
       const token = localStorage.getItem("accessToken");
       if (!token) return;
 
-      const res = await fetch("http://localhost:8000/api/problems/allProblems", {
+      const res = await fetch(`${API_BASE_URL}/api/problems/allProblems`, {
         method: "GET",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -93,7 +94,7 @@ const Problems = () => {
       if (!token) return;
 
       // Update notes
-      const res = await fetch(`http://localhost:8000/api/problems/${problemHistoryId}/notes`, {
+      const res = await fetch(`${API_BASE_URL}/api/problems/${problemHistoryId}/notes`, {
         method: "PUT",
         headers: {
           "Authorization": `Bearer ${token}`,

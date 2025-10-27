@@ -15,6 +15,7 @@ import {
   Zap,
   Loader2
 } from 'lucide-react';
+import API_BASE_URL from '../config/api';
 
 interface AnalyticsData {
   totalProblems: number;
@@ -55,7 +56,7 @@ const PlacementReadiness = () => {
       const token = localStorage.getItem("accessToken");
       if (!token) return;
 
-      const res = await fetch("http://localhost:8000/api/problems/analytics", {
+      const res = await fetch(`${API_BASE_URL}/api/problems/analytics`, {
         method: "GET",
         headers: {
           "Authorization": `Bearer ${token}`,
