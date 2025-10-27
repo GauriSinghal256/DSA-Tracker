@@ -1,6 +1,7 @@
 // src/components/Register.jsx
 import React, { useState } from "react";
 import axios from "axios";
+import API_BASE_URL from "../../config/api";
 
 const Register = ({ onAuthSuccess }) => {
   const [isLogin, setIsLogin] = useState(false);
@@ -35,7 +36,7 @@ const Register = ({ onAuthSuccess }) => {
     try {
       if (isLogin) {
         // 🟢 LOGIN API
-        const res = await axios.post("http://localhost:8000/api/auth/login", {
+        const res = await axios.post(`${API_BASE_URL}/api/auth/login`, {
           email: formData.email, // Send as email
           password: formData.password,
         });
@@ -60,7 +61,7 @@ const Register = ({ onAuthSuccess }) => {
         data.append("year", formData.year);
         if (formData.avatar) data.append("avatar", formData.avatar);
 
-        const res = await axios.post("http://localhost:8000/api/auth/register", data, {
+        const res = await axios.post(`${API_BASE_URL}/api/auth/register`, data, {
           headers: {
             "Content-Type": "multipart/form-data",
           },

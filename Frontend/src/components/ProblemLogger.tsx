@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, BookOpen, Check } from 'lucide-react';
+import API_BASE_URL from '../config/api';
 
 interface Problem {
   _id: string;
@@ -43,7 +44,7 @@ const ProblemLogger = () => {
         const token = localStorage.getItem("accessToken");
         if (!token) return;
 
-        const res = await fetch("http://localhost:8000/api/problems/allProblems", {
+        const res = await fetch(`${API_BASE_URL}/api/problems/allProblems`, {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${token}`,
@@ -95,7 +96,7 @@ const ProblemLogger = () => {
       }
       if (formData.noteImage) formToSend.append("notesImage", formData.noteImage);
 
-      const res = await fetch("http://localhost:8000/api/problems/log", {
+      const res = await fetch(`${API_BASE_URL}/api/problems/log`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -112,7 +113,7 @@ const ProblemLogger = () => {
 
       // Refresh the problems list
       const fetchProblems = async () => {
-        const res = await fetch("http://localhost:8000/api/problems/allProblems", {
+        const res = await fetch(`${API_BASE_URL}/api/problems/allProblems`, {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${token}`,
