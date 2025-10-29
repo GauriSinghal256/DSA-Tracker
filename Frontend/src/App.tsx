@@ -11,6 +11,7 @@ import Community from "./components/Community";
 import MySpace from "./components/MySpace";
 // @ts-ignore: importing a JS (JSX) file without type declarations
 import Register from "./components/login_Signup/Register.jsx";
+import API_BASE_URL from "./config/api";
 
 interface Notification {
   _id: string;
@@ -69,7 +70,7 @@ function App() {
       const token = localStorage.getItem("accessToken");
       if (!token) return;
 
-      const res = await fetch("http://localhost:8000/api/problems/notifications", {
+      const res = await fetch(`${API_BASE_URL}/api/problems/notifications`, {
         method: "GET",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -93,7 +94,7 @@ function App() {
       const token = localStorage.getItem("accessToken");
       if (!token) return;
 
-      const res = await fetch(`http://localhost:8000/api/problems/${notification._id}/redo`, {
+      const res = await fetch(`${API_BASE_URL}/api/problems/${notification._id}/redo`, {
         method: "PUT",
         headers: {
           "Authorization": `Bearer ${token}`,
