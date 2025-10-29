@@ -1,6 +1,6 @@
 // src/App.tsx
 import React, { useEffect, useState } from "react";
-import { Menu, X, BarChart3, Calendar, BookOpen, Zap, TrendingUp, FileText, Users, Bell, Check, Clock } from "lucide-react";
+import { Menu, X, BarChart3, Calendar, BookOpen, Zap, TrendingUp, FileText, Users, Bell, Check, Clock, NotebookPen } from "lucide-react";
 import Dashboard from "./components/Dashboard";
 import ProblemLogger from "./components/ProblemLogger";
 import Problems from "./components/Problems";
@@ -8,6 +8,7 @@ import Analytics from "./components/Analytics";
 import Recommendations from "./components/Recommendations";
 import PlacementReadiness from "./components/PlacementReadiness";
 import Community from "./components/Community";
+import MySpace from "./components/MySpace";
 // @ts-ignore: importing a JS (JSX) file without type declarations
 import Register from "./components/login_Signup/Register.jsx";
 
@@ -162,6 +163,7 @@ function App() {
     { id: "dashboard", label: "Dashboard", icon: BarChart3 },
     { id: "logger", label: "Log Problem", icon: BookOpen },
     { id: "problems", label: "My Problems", icon: FileText },
+    { id: "myspace", label: "MySpace", icon: NotebookPen },
     { id: "analytics", label: "Analytics", icon: TrendingUp },
     { id: "recommendations", label: "AI Recommendations", icon: Zap },
     { id: "community", label: "Community", icon: Users },
@@ -181,6 +183,8 @@ function App() {
         return <ProblemLogger />;
       case "problems":
         return <Problems />;
+      case "myspace":
+        return <MySpace />;
       case "analytics":
         return <Analytics />;
       case "recommendations":
