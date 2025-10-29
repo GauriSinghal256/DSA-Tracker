@@ -17,7 +17,11 @@ app.use(cors({
         "https://dsa-tracker-pearl.vercel.app",
         "https://dsa-tracker-pearl-git-main-gauri-singhal.vercel.app"
     ], 
-    credentials: true
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
+    exposedHeaders: ["Content-Type", "Authorization"],
+    optionsSuccessStatus: 200
 }));
 
 app.use(express.json({ limit: "16kb" }));
