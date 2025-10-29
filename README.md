@@ -1,6 +1,6 @@
 # DSA Tracker - Complete Implementation Guide
 
-A full-stack DSA Tracker application with user authentication, problem logging, dashboard with streaks, and analytics.
+A full-stack DSA Tracker application with user authentication, problem logging, dashboard with streaks, analytics, and a comprehensive knowledge management system (MySpace).
 
 ## Features Implemented
 
@@ -26,6 +26,16 @@ A full-stack DSA Tracker application with user authentication, problem logging, 
    - Streak calendar visualization
    - Recent activity feed
 
+4. **MySpace - Knowledge Management System**
+   - Create and manage personal notes
+   - Topic-based organization
+   - File attachments (images & PDFs)
+   - Tag-based categorization
+   - Public/private note sharing
+   - Community notes browsing
+   - Search and filter functionality
+   - Grid and list view modes
+
 ### ✅ Frontend Features
 1. **Authentication UI**
    - Beautiful login/register page
@@ -43,6 +53,14 @@ A full-stack DSA Tracker application with user authentication, problem logging, 
    - Recent problems display
    - Status tracking
    - Difficulty badges
+
+4. **MySpace Interface**
+   - Tab-based navigation (My Notes / Community Notes)
+   - Rich note creation and editing
+   - File upload with drag & drop
+   - Real-time search and filtering
+   - Responsive grid and list views
+   - Community knowledge sharing
 
 ## Tech Stack
 
@@ -131,12 +149,29 @@ npm run dev
 - `POST /api/problems/log` - Log a new problem (protected)
 - `GET /api/problems/allProblems` - Get all user's problems (protected)
 
+### MySpace Notes
+- `POST /api/notes` - Create a new note (protected)
+- `GET /api/notes` - Get user's notes (protected)
+- `GET /api/notes/:noteId` - Get specific note (protected)
+- `PUT /api/notes/:noteId` - Update note (protected)
+- `DELETE /api/notes/:noteId` - Delete note (protected)
+- `GET /api/notes/public` - Get public community notes (protected)
+- `GET /api/notes/topics` - Get all user topics (protected)
+- `DELETE /api/notes/:noteId/attachments/:attachmentId` - Delete attachment (protected)
+
 ## Usage
 
 1. **Register/Login**: Create an account or login with existing credentials
 2. **Log Problems**: Navigate to "Log Problem" tab and fill in the form
 3. **View Dashboard**: See your streaks, statistics, and recent activity
 4. **Track Progress**: Monitor your DSA journey with visualizations
+5. **MySpace Knowledge Hub**: 
+   - Create personal notes with topics and descriptions
+   - Upload images and PDFs as attachments
+   - Organize notes with tags
+   - Share notes publicly with the community
+   - Browse and learn from community notes
+   - Search and filter your knowledge base
 
 ## File Structure
 
@@ -144,16 +179,17 @@ npm run dev
 DsaTracker/
 ├── Backend/
 │   ├── src/
-│   │   ├── controllers/      # Request handlers
-│   │   ├── models/           # Database models
-│   │   ├── routes/           # API routes
+│   │   ├── controllers/      # Request handlers (user, problem, note, ai, community)
+│   │   ├── models/           # Database models (user, problem, note, post)
+│   │   ├── routes/           # API routes (auth, problems, notes, ai, community)
 │   │   ├── middlewares/      # Auth & file upload
 │   │   ├── utils/            # Helper functions
 │   │   └── db/               # Database connection
 │   └── package.json
 └── Frontend/
     ├── src/
-    │   ├── components/       # React components
+    │   ├── components/       # React components (Dashboard, MySpace, etc.)
+    │   ├── config/           # API configuration
     │   └── App.tsx           # Main app component
     └── package.json
 ```
@@ -178,11 +214,49 @@ DsaTracker/
 - Problem accuracy tracking
 - Interactive calendar visualization
 
-### 4. Modern UI/UX
+### 4. MySpace Knowledge Management
+- Personal note creation and management
+- File attachment support (images & PDFs)
+- Topic-based organization
+- Tag-based categorization
+- Public/private note sharing
+- Community knowledge browsing
+- Advanced search and filtering
+- Multiple view modes (grid/list)
+
+### 5. Modern UI/UX
 - Responsive design
 - Dark theme
 - Smooth animations
 - Intuitive navigation
+- Tab-based interfaces
+- Drag & drop file uploads
+
+## Deployment
+
+### Backend Deployment (Render)
+1. Push your code to GitHub
+2. Connect your repository to Render
+3. Set environment variables in Render dashboard:
+   - `MONGODB_URI`
+   - `ACCESS_TOKEN_SECRET`
+   - `REFRESH_TOKEN_SECRET`
+   - `CLOUDINARY_CLOUD_NAME`
+   - `CLOUDINARY_API_KEY`
+   - `CLOUDINARY_API_SECRET`
+4. Deploy and note the backend URL
+
+### Frontend Deployment (Vercel)
+1. Connect your repository to Vercel
+2. Set environment variables in Vercel dashboard:
+   - `VITE_API_BASE_URL` = your Render backend URL
+3. Deploy
+
+### CORS Configuration
+The backend is configured to allow requests from:
+- `http://localhost:5173` (local development)
+- `https://dsa-tracker-pearl.vercel.app` (your deployed frontend)
+- `https://dsa-tracker-pearl-git-main-gauri-singhal.vercel.app` (Vercel preview URLs)
 
 ## Next Steps
 
@@ -193,6 +267,8 @@ Consider implementing:
 - Placement readiness tracker
 - Export data functionality
 - Social features (leaderboards)
+- Note sharing and collaboration features
+- Advanced search with full-text indexing
 
 ## Notes
 

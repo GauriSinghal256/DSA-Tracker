@@ -1,4 +1,4 @@
-import express from "express";
+cd import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import userRouter from "./routes/user.routes.js"; 
@@ -12,7 +12,11 @@ dotenv.config();
 const app = express();
 
 app.use(cors({
-    origin: "http://localhost:5173", 
+    origin: [
+        "http://localhost:5173", 
+        "https://dsa-tracker-pearl.vercel.app",
+        "https://dsa-tracker-pearl-git-main-gauri-singhal.vercel.app"
+    ], 
     credentials: true
 }));
 
