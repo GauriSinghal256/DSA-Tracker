@@ -202,21 +202,39 @@ export const getAnalytics = asyncHandler(async (req, res) => {
   });
 
   // Weekly progress (last 4 weeks)
+  // Use consistent week boundaries (Monday - Sunday) and non-overlapping ranges.
   const now = new Date();
+  // Normalize to local midnight
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+
+  // Find start of current week (Monday)
+  const dayOfWeek = (today.getDay() + 6) % 7; // 0 = Monday, ... 6 = Sunday
+  const startOfCurrentWeek = new Date(today);
+  startOfCurrentWeek.setDate(today.getDate() - dayOfWeek);
+
   const weeklyData = [];
-  for (let i = 3; i >= 0; i--) {
-    const weekStart = new Date(now);
-    weekStart.setDate(weekStart.getDate() - (i * 7 + 6));
-    const weekEnd = new Date(now);
-    weekEnd.setDate(weekEnd.getDate() - (i * 7));
-    
+
+  const formatShort = (d) => {
+    return `${d.toLocaleString('default', { month: 'short' })} ${d.getDate()}`;
+  };
+
+  // Build 4 weeks: oldest -> newest
+  for (let k = 3; k >= 0; k--) {
+    const weekStart = new Date(startOfCurrentWeek);
+    weekStart.setDate(startOfCurrentWeek.getDate() - k * 7);
+
+    const nextWeekStart = new Date(weekStart);
+    nextWeekStart.setDate(weekStart.getDate() + 7);
+
     const weekProblems = histories.filter(h => {
       const solvedDate = new Date(h.solvedAt);
-      return solvedDate >= weekStart && solvedDate <= weekEnd;
+      // include dates >= weekStart and < nextWeekStart to avoid overlap
+      return solvedDate >= weekStart && solvedDate < nextWeekStart;
     }).length;
-    
+
     weeklyData.push({
-      week: `Week ${4 - i}`,
+      week: `${formatShort(weekStart)} - ${formatShort(new Date(nextWeekStart.getTime() - 1))}`,
       problems: weekProblems
     });
   }

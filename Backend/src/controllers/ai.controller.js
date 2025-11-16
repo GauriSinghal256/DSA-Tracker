@@ -98,10 +98,54 @@ Use this context to give relevant next steps.`;
         const prompt = `${context}\n\nStudent Query: ${message}\n\nRespond in 2–3 short paragraphs with encouragement and actionable steps.`;
 
         console.log("🧠 Sending prompt to Gemini...");
-        const result = await model.generateContent(prompt);
-        const text = result.response.text();
+        // Try generating content
+        let result = await model.generateContent(prompt);
 
-        console.log("✅ Gemini response generated successfully.");
+        // Robust extraction of text from different SDK shapes
+        const extractText = (r) => {
+            try {
+                if (!r) return null;
+                // Common shapes
+                if (typeof r === 'string') return r;
+                if (r.response && typeof r.response.text === 'function') return r.response.text();
+                if (r.candidates && r.candidates[0] && r.candidates[0].content) {
+                    const c = r.candidates[0].content;
+                    if (typeof c === 'string') return c;
+                    if (c[0] && c[0].text) return c[0].text;
+                }
+                if (r.output && Array.isArray(r.output) && r.output[0] && r.output[0].content) {
+                    const o = r.output[0].content;
+                    if (typeof o === 'string') return o;
+                    if (o[0] && o[0].text) return o[0].text;
+                }
+                if (r.result && r.result.output && Array.isArray(r.result.output) && r.result.output[0] && r.result.output[0].content) {
+                    const o = r.result.output[0].content;
+                    if (o.text) return o.text;
+                }
+
+                // Fallback to JSON stringify
+                return JSON.stringify(r);
+            } catch (e) {
+                return null;
+            }
+        };
+
+        let text = extractText(result);
+
+        // If text is empty or seems identical repeatedly, retry once with a small variation
+        if (!text || text.trim().length === 0) {
+            console.warn('⚠️ Empty response from Gemini, retrying with small variation...');
+            const retryPrompt = prompt + '\n\n(Please provide an alternate phrasing of the response.)';
+            result = await model.generateContent(retryPrompt);
+            text = extractText(result);
+        }
+
+        console.log("✅ Gemini response generated successfully.", { length: text ? text.length : 0 });
+
+        if (!text) {
+            throw new Error('Empty response from Gemini');
+        }
+
         return res
             .status(200)
             .json(new ApiResponse(200, { response: text }, "AI response generated"));

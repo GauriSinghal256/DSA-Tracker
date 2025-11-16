@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart3, PieChart, TrendingUp, Target, Calendar, Filter, Loader2 } from 'lucide-react';
+import { BarChart3, PieChart, TrendingUp, Target, Calendar, Filter, Loader2, ArrowUp, ArrowDown } from 'lucide-react';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
+import { Line } from 'react-chartjs-2';
 import API_BASE_URL from '../config/api';
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
 interface AnalyticsData {
   totalProblems: number;
@@ -113,6 +117,13 @@ const Analytics = () => {
   }
 
   const maxWeeklyProblems = Math.max(...analyticsData.weeklyProgress.map(w => w.problems), 1);
+
+  const weeklyChanges = analyticsData.weeklyProgress.map((week, idx, arr) => {
+    const prev = idx === 0 ? 0 : arr[idx - 1].problems;
+    const diff = week.problems - prev;
+    const percent = prev === 0 ? (week.problems === 0 ? 0 : 100) : Math.round((diff / prev) * 100);
+    return { diff, percent };
+  });
 
   return (
     <div className="space-y-8 animate-fadeIn">
@@ -253,20 +264,66 @@ const Analytics = () => {
           <h2 className="text-2xl font-bold text-white">Weekly Progress</h2>
         </div>
         
-        <div className="flex items-end space-x-4 h-64">
-          {analyticsData.weeklyProgress.map((week, index) => (
-            <div key={week.week} className="flex-1 flex flex-col items-center">
-              <div
-                className="w-full bg-gradient-to-t from-blue-600 to-purple-600 rounded-t-lg transition-all duration-1000 hover:from-blue-500 hover:to-purple-500"
-                style={{ height: `${(week.problems / maxWeeklyProblems) * 100}%` }}
-              />
-              <div className="mt-3 text-center">
-                <div className="text-white font-bold text-lg">{week.problems}</div>
-                <div className="text-gray-400 text-sm">{week.week}</div>
-              </div>
+        {analyticsData.weeklyProgress.every(w => w.problems === 0) ? (
+          <div className="flex items-center justify-center h-32 text-gray-400">
+            No weekly activity yet — start logging problems to see progress here.
+          </div>
+        ) : (
+          <>
+            <div className="flex justify-between mb-3">
+              {analyticsData.weeklyProgress.map((week, index) => (
+                <div key={week.week} className="flex-1 text-center">
+                  {index === 0 ? (
+                    <span className="text-gray-400 text-xs">—</span>
+                  ) : weeklyChanges[index].diff > 0 ? (
+                    <span className="text-green-400 text-sm flex items-center justify-center">
+                      <ArrowUp className="w-3 h-3 mr-1" />+{weeklyChanges[index].percent}%
+                    </span>
+                  ) : weeklyChanges[index].diff < 0 ? (
+                    <span className="text-red-400 text-sm flex items-center justify-center">
+                      <ArrowDown className="w-3 h-3 mr-1" />{Math.abs(weeklyChanges[index].percent)}%
+                    </span>
+                  ) : (
+                    <span className="text-gray-400 text-xs">0%</span>
+                  )}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+
+            <div className="h-56">
+              {/* Chart.js line chart */}
+              <Line
+                data={{
+                  labels: analyticsData.weeklyProgress.map(w => w.week),
+                  datasets: [
+                    {
+                      label: 'Problems',
+                      data: analyticsData.weeklyProgress.map(w => w.problems),
+                      borderColor: 'rgba(99,102,241,1)',
+                      backgroundColor: 'rgba(99,102,241,0.12)',
+                      tension: 0.35,
+                      fill: true,
+                      pointRadius: 4,
+                      pointBackgroundColor: 'rgba(99,102,241,1)'
+                    }
+                  ]
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: true }
+                  },
+                  scales: {
+                    x: { grid: { display: false }, ticks: { color: '#9CA3AF' } },
+                    y: { beginAtZero: true, ticks: { stepSize: 1, color: '#9CA3AF' }, grid: { color: 'rgba(148,163,184,0.06)' } }
+                  }
+                }}
+              />
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

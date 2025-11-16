@@ -1,5 +1,6 @@
 // src/components/Register.jsx
 import React, { useState } from "react";
+import { Loader2 } from 'lucide-react';
 import axios from "axios";
 import API_BASE_URL from "../../config/api";
 
@@ -13,6 +14,7 @@ const Register = ({ onAuthSuccess }) => {
     year: "",
     avatar: null,
   });
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type } = e.target;
@@ -33,6 +35,7 @@ const Register = ({ onAuthSuccess }) => {
       return;
     }
 
+    setLoading(true);
     try {
       if (isLogin) {
         // 🟢 LOGIN API
@@ -91,6 +94,8 @@ const Register = ({ onAuthSuccess }) => {
       } else {
         alert(`Something went wrong: ${errorMessage}`);
       }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -119,7 +124,8 @@ const Register = ({ onAuthSuccess }) => {
                   onChange={handleChange}
                   required
                   placeholder="Your username"
-                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  disabled={loading}
+                  className={`w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
                 />
               </div>
 
@@ -132,7 +138,8 @@ const Register = ({ onAuthSuccess }) => {
                   onChange={handleChange}
                   required
                   placeholder="Your full name"
-                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  disabled={loading}
+                  className={`w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
                 />
               </div>
 
@@ -143,7 +150,8 @@ const Register = ({ onAuthSuccess }) => {
                   name="avatar"
                   accept="image/*"
                   onChange={handleChange}
-                  className="w-full text-sm text-gray-300"
+                  disabled={loading}
+                  className={`w-full text-sm text-gray-300 ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
                 />
               </div>
             </>
@@ -155,10 +163,11 @@ const Register = ({ onAuthSuccess }) => {
               type="email"
               name="email"
               value={formData.email}
-              onChange={handleChange}
-              required
-              placeholder="you@example.com"
-              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500"
+                onChange={handleChange}
+                required
+                placeholder="you@example.com"
+                disabled={loading}
+                className={`w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
             />
           </div>
 
@@ -168,10 +177,11 @@ const Register = ({ onAuthSuccess }) => {
               type="password"
               name="password"
               value={formData.password}
-              onChange={handleChange}
-              required
-              placeholder="••••••••"
-              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500"
+                onChange={handleChange}
+                required
+                placeholder="••••••••"
+                disabled={loading}
+                className={`w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
             />
           </div>
 
@@ -183,7 +193,8 @@ const Register = ({ onAuthSuccess }) => {
                 value={formData.year}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500"
+                disabled={loading}
+                className={`w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
               >
                 <option value="">Select year</option>
                 <option value="school">School going</option>
@@ -197,9 +208,18 @@ const Register = ({ onAuthSuccess }) => {
 
           <button
             type="submit"
-            className="w-full py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-all"
+            disabled={loading}
+            aria-busy={loading}
+            className={`w-full py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-all flex items-center justify-center ${loading ? 'opacity-80 cursor-not-allowed' : ''}`}
           >
-            {isLogin ? "Login" : "Register"}
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                {isLogin ? 'Logging in...' : 'Registering...'}
+              </>
+            ) : (
+              (isLogin ? 'Login' : 'Register')
+            )}
           </button>
         </form>
 
@@ -209,6 +229,7 @@ const Register = ({ onAuthSuccess }) => {
             onClick={() => setIsLogin(!isLogin)}
             className="text-blue-400 hover:underline"
             type="button"
+            disabled={loading}
           >
             {isLogin ? "Register" : "Login"}
           </button>
