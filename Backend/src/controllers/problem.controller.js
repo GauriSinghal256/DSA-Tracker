@@ -25,12 +25,16 @@ export const logProblem = asyncHandler(async (req, res) => {
     console.log("problem Title:", title);
     console.log("Request body:", req.body);
 
-    if(
-        [title, platform, Problem_URL, difficulty].some((field)=>
-            field?.trim() === "")
-    ) {
-        throw new ApiError(400 , "Required fields are missing")
-      } 
+    // Validate required fields and return which ones are missing
+    const required = { title, platform, Problem_URL, difficulty };
+    const missingReq = Object.entries(required).reduce((acc, [k, v]) => {
+      if (typeof v === 'undefined' || v === null || (typeof v === 'string' && v.trim() === '')) acc.push(k);
+      return acc;
+    }, []);
+
+    if (missingReq.length > 0) {
+      throw new ApiError(400, `Missing required field(s): ${missingReq.join(', ')}.`);
+    }
     
     // Map status values
     const statusMap = {
@@ -145,7 +149,7 @@ export const updateProblemNotes = asyncHandler(async (req, res) => {
   });
 
   if (!problemHistory) {
-    throw new ApiError(404, "Problem history not found");
+    throw new ApiError(404, "Problem history not found for the given id and user.");
   }
 
   problemHistory.notes = notes;
@@ -334,7 +338,7 @@ export const markAsRedone = asyncHandler(async (req, res) => {
   });
 
   if (!problemHistory) {
-    throw new ApiError(404, "Problem history not found");
+    throw new ApiError(404, "Problem history not found for the given id and user.");
   }
 
   // Update the status to 'Redo' and set solvedAt to current time

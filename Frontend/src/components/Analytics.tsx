@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { BarChart3, PieChart, TrendingUp, Target, Calendar, Filter, Loader2, ArrowUp, ArrowDown } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { BarChart3, PieChart, TrendingUp, Target, Calendar, Loader2, ArrowUp, ArrowDown } from 'lucide-react';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import API_BASE_URL from '../config/api';

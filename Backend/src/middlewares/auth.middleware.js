@@ -17,7 +17,7 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
         }
         
         if(!token){
-            throw new ApiError(401 , "Not authorized, token missing")
+            throw new ApiError(401, "Authorization token missing. Provide a valid access token in the 'Authorization' header (Bearer <token>) or as a cookie named 'accessToken'.");
         }
     
         const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)
@@ -25,12 +25,13 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
         const user = await User.findById(decodedToken?._id).select("-password -refreshToken")
     
         if(!user){
-            throw new ApiError(401 , "Invalid access token, user not found")
+            throw new ApiError(401, "Invalid access token: no user matches the provided token.");
         }
     
         req.user = user;
         next()
     } catch (error) {
-        throw new ApiError(401 , `Not authorized: ${error.message}`)
+        // Provide clearer guidance while preserving the original error message
+        throw new ApiError(401, `Authorization failed: ${error.message}`);
     }
 })    

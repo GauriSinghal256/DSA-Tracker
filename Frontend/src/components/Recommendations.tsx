@@ -137,7 +137,32 @@ const Recommendations = () => {
       const data = await response.json();
       console.log('Response data:', data);
 
-      if (data.success) {
+      // If server responded with non-OK status, show server-provided message
+      if (!response.ok) {
+        const serverMsg = data?.message || data?.data?.message || JSON.stringify(data);
+        const errorMessage: Message = {
+          role: 'assistant',
+          content: `Server error: ${serverMsg}`,
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, errorMessage]);
+        return;
+      }
+
+      // If server returned a success=false payload, surface its message
+      if (data && data.success === false) {
+        const serverMsg = data?.message || JSON.stringify(data);
+        const errorMessage: Message = {
+          role: 'assistant',
+          content: `Error: ${serverMsg}`,
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, errorMessage]);
+        return;
+      }
+
+      // Normal successful response
+      if (data.success && data.data) {
         const aiMessage: Message = {
           role: 'assistant',
           content: data.data.response,
@@ -145,7 +170,13 @@ const Recommendations = () => {
         };
         setMessages(prev => [...prev, aiMessage]);
       } else {
-        throw new Error(data.message || 'Failed to get AI response');
+        const fallbackMsg = data?.message || 'Failed to get AI response';
+        const errorMessage: Message = {
+          role: 'assistant',
+          content: `Error: ${fallbackMsg}`,
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, errorMessage]);
       }
     } catch (error) {
       console.error('Error sending message:', error);

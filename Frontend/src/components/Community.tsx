@@ -108,7 +108,6 @@ const Community = () => {
       await axios.post(`${API_BASE_URL}/api/community/posts`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
         },
         withCredentials: true,
       });
@@ -297,14 +296,14 @@ const Community = () => {
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-2">
                       <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-xs shadow-md">
-                        {post.author.username[0].toUpperCase()}
+                        {post.author?.username?.[0]?.toUpperCase() || 'U'}
                       </div>
                       <div>
-                        <div className="font-medium text-white text-xs">{post.author.fullName}</div>
-                        <div className="text-xs text-gray-400">@{post.author.username} · {formatDate(post.createdAt)}</div>
+                        <div className="font-medium text-white text-xs">{post.author?.fullName || 'Unknown'}</div>
+                        <div className="text-xs text-gray-400">@{post.author?.username || 'unknown'} · {formatDate(post.createdAt)}</div>
                       </div>
                     </div>
-                    {currentUser && post.author._id === currentUser._id && (
+                    {currentUser && post.author?._id === currentUser._id && (
                       <button
                         onClick={() => handleDeletePost(post._id)}
                         className="text-red-400 hover:text-red-300 p-1 hover:bg-red-500/20 rounded transition-all"
@@ -368,10 +367,10 @@ const Community = () => {
                       {post.comments.slice(0, 2).map(comment => (
                         <div key={comment._id} className="flex items-start space-x-1.5 bg-white/5 rounded p-1.5 border border-white/10">
                           <div className="w-5 h-5 rounded-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center text-white text-xs font-bold">
-                            {comment.author.username[0].toUpperCase()}
+                            {comment.author?.username?.[0]?.toUpperCase() || 'U'}
                           </div>
                           <div className="flex-1">
-                            <div className="font-medium text-white text-xs">{comment.author.fullName}</div>
+                            <div className="font-medium text-white text-xs">{comment.author?.fullName || 'Unknown'}</div>
                             <div className="text-gray-300 text-xs">{comment.content}</div>
                           </div>
                         </div>

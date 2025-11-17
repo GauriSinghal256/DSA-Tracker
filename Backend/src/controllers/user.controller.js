@@ -25,12 +25,16 @@ const registerUser = asyncHandler(async (req, res) => {
     const {fullName, year , email , username , password} = req.body
     console.log("email" , email);
 
-    if(
-        [year ,fullName, email , username , password].some((field)=>
-            field?.trim() === "")
-    ) {
-        throw new ApiError(400 , "All fields are required")
-      }
+    // Validate required fields and produce clear error messages listing missing fields
+    const requiredFields = { fullName, year, email, username, password };
+    const missing = Object.entries(requiredFields).reduce((acc, [key, val]) => {
+        if (typeof val === 'undefined' || val === null || (typeof val === 'string' && val.trim() === '')) acc.push(key);
+        return acc;
+    }, []);
+
+    if (missing.length > 0) {
+        throw new ApiError(400, `Missing required field(s): ${missing.join(', ')}.`);
+    }
 
      const existedUser =await User.findOne({
         $or: [{email} , {username: username.toLowerCase()}]
@@ -46,26 +50,31 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new ApiError(409 , "User already exists")
      }
 
-     const avatarLocalPath =  req.files?.avatar[0]?.path;
-     if(!avatarLocalPath){
-        throw new ApiError(400 , "Avatar is required")
+     const avatarLocalPath = req.files?.avatar?.[0]?.path;
+     let avatarUrl = null;
+
+     if (avatarLocalPath) {
+        // upload to cloudinary
+        const avatar = await uploadToCloudinary(avatarLocalPath);
+        if (!avatar || !avatar.url) {
+            // Log warning but don't block registration
+            console.warn('Avatar upload failed or returned no url; continuing without avatar');
+        } else {
+            avatarUrl = avatar.url;
+        }
      }
 
-    //upload to cloudinary
-    const avatar = await uploadToCloudinary(avatarLocalPath)
-    
-    if(!avatar){
-        throw new ApiError(500 , "Avatar upload failed")
-    }
-
-    const user = await User.create({
+    const userData = {
         fullName,
         year,
-        avatar: avatar.url,
         email,
         password,
         username: username.toLowerCase(),
-    })
+    };
+
+    if (avatarUrl) userData.avatar = avatarUrl;
+
+    const user = await User.create(userData);
 
     const createdUser = await User.findById(user._id).select(
         "-password -refreshToken"
@@ -256,8 +265,12 @@ const getCurrentUser = asyncHandler(async(req , res)=>{
 const updateAccountDetails = asyncHandler(async(req,res)=>{
     const {fullName , email , year} = req.body
 
-    if(!fullName || !email){
-        throw new ApiError(404 , "All fields are required")
+    const missing = [];
+    if (!fullName) missing.push('fullName');
+    if (!email) missing.push('email');
+
+    if (missing.length > 0) {
+        throw new ApiError(400, `Missing required field(s): ${missing.join(', ')}.`);
     }
 
     const user = await User.findByIdAndUpdate(
@@ -280,12 +293,12 @@ const updateAccountDetails = asyncHandler(async(req,res)=>{
 const updateUserAvatar = asyncHandler(async(req,res) =>{
     const avatarLocalPath = req.file?.path
     if(!avatarLocalPath){
-        throw new ApiError(400 ,"Avatar file is missing")
+        throw new ApiError(400, "Avatar file is missing from request. Please upload a file with field name 'avatar'.");
     }
 
     const avatar = await uploadToCloudinary(avatarLocalPath)
-    if(!avatar.url){
-        throw new ApiError(400 ,"Error while uploading on Avatar")
+    if(!avatar || !avatar.url){
+        throw new ApiError(500, "Failed to upload avatar image to cloud storage. Try again later.");
     }
 
     const user = await User.findByIdAndUpdate(

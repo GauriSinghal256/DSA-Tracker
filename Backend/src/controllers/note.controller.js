@@ -8,8 +8,13 @@ import { uploadToCloudinary } from '../utils/cloudinary.js';
 const createNote = asyncHandler(async (req, res) => {
     const { title, description, topic, tags, isPublic } = req.body;
     
-    if (!title || !description || !topic) {
-        throw new ApiError(400, "Title, description, and topic are required");
+    const missing = [];
+    if (!title) missing.push('title');
+    if (!description) missing.push('description');
+    if (!topic) missing.push('topic');
+
+    if (missing.length > 0) {
+        throw new ApiError(400, `Missing required field(s): ${missing.join(', ')}.`);
     }
 
     // Handle file uploads
@@ -97,7 +102,7 @@ const getNoteById = asyncHandler(async (req, res) => {
 
     // Check if user owns the note or if it's public
     if (note.owner._id.toString() !== req.user._id.toString() && !note.isPublic) {
-        throw new ApiError(403, "Access denied");
+        throw new ApiError(403, "Access denied: you do not have permission to view this note.");
     }
 
     return res.status(200).json(
@@ -117,7 +122,7 @@ const updateNote = asyncHandler(async (req, res) => {
     }
 
     if (note.owner.toString() !== req.user._id.toString()) {
-        throw new ApiError(403, "Access denied");
+        throw new ApiError(403, "Access denied: you can only update your own notes.");
     }
 
     // Handle new file uploads
@@ -171,7 +176,7 @@ const deleteNote = asyncHandler(async (req, res) => {
     }
 
     if (note.owner.toString() !== req.user._id.toString()) {
-        throw new ApiError(403, "Access denied");
+        throw new ApiError(403, "Access denied: you can only delete your own notes.");
     }
 
     await Note.findByIdAndDelete(noteId);
@@ -192,7 +197,7 @@ const deleteAttachment = asyncHandler(async (req, res) => {
     }
 
     if (note.owner.toString() !== req.user._id.toString()) {
-        throw new ApiError(403, "Access denied");
+        throw new ApiError(403, "Access denied: you can only modify attachments for your own notes.");
     }
 
     const attachment = note.attachments.id(attachmentId);
