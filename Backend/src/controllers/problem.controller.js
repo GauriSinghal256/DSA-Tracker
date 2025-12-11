@@ -22,9 +22,6 @@ export const logProblem = asyncHandler(async (req, res) => {
       status = "Solved",
     } = req.body;
 
-    console.log("problem Title:", title);
-    console.log("Request body:", req.body);
-
     // Validate required fields and return which ones are missing
     const required = { title, platform, Problem_URL, difficulty };
     const missingReq = Object.entries(required).reduce((acc, [k, v]) => {

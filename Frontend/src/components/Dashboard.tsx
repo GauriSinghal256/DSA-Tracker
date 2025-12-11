@@ -90,8 +90,6 @@ const Dashboard = ({ onNavigateToRecommendations, onNavigateToLogger, onNavigate
       
       if (data.success && data.data) {
         const problems: ProblemHistory[] = data.data;
-        console.log('Problems fetched:', problems.length);
-        console.log('Solved problems:', problems.filter(p => p.status === 'Solved').length);
         
         // Calculate streaks
         const { currentStreak, longestStreak } = calculateStreaks(problems);
@@ -150,7 +148,6 @@ const Dashboard = ({ onNavigateToRecommendations, onNavigateToLogger, onNavigate
         
         // Add some test data if no problems exist
         if (problems.length === 0) {
-          console.log('No problems found, adding test data');
           const testProblems = [
             {
               _id: 'test1',
@@ -277,7 +274,7 @@ const Dashboard = ({ onNavigateToRecommendations, onNavigateToLogger, onNavigate
       dateCountMap.set(dateKey, (dateCountMap.get(dateKey) || 0) + 1);
     });
     
-    console.log('Date count map:', Array.from(dateCountMap.entries()));
+    
     
     // Generate data for the last 371 days (53 weeks * 7 days + a few days)
     const data: StreakDayData[] = [];

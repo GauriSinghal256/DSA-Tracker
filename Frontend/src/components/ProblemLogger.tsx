@@ -67,7 +67,6 @@ const ProblemLogger = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem("accessToken");
-      console.log("Access Token:", token ? "Token exists" : "No token");
       
       if (!token) {
         alert("You need to login first!");

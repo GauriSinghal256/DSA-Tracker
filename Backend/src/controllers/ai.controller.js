@@ -55,8 +55,6 @@ Practice patterns like Two Pointers, Sliding Window, DP, Graphs, etc.`;
 
 // 🚀 Main Controller
 const chatWithAI = asyncHandler(async (req, res) => {
-    console.log("📩 Incoming AI chat request:", req.body);
-
     const { message, lastProblem } = req.body;
 
     if (!message || message.trim() === "") {
